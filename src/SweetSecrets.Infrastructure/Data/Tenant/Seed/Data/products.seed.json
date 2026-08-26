@@ -1,0 +1,614 @@
+[
+  {
+    "name": "ACEITE CAPULLO",
+    "purchaseQuantity": 845.0,
+    "unitCode": "ML",
+    "purchasePrice": 52.0
+  },
+  {
+    "name": "ACEITE DE COCINA",
+    "purchaseQuantity": 450.0,
+    "unitCode": "ML",
+    "purchasePrice": 78.0
+  },
+  {
+    "name": "ALMENDRAS",
+    "purchaseQuantity": 908.0,
+    "unitCode": "GR",
+    "purchasePrice": 230.0
+  },
+  {
+    "name": "AMARANTO",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 60.0
+  },
+  {
+    "name": "AMARETTO",
+    "purchaseQuantity": 700.0,
+    "unitCode": "ML",
+    "purchasePrice": 589.0
+  },
+  {
+    "name": "ARÁNDANOS",
+    "purchaseQuantity": 1360.0,
+    "unitCode": "GR",
+    "purchasePrice": 230.0
+  },
+  {
+    "name": "AVENA",
+    "purchaseQuantity": 700.0,
+    "unitCode": "GR",
+    "purchasePrice": 30.0
+  },
+  {
+    "name": "AZUCAR DE COCO",
+    "purchaseQuantity": 500.0,
+    "unitCode": "GR",
+    "purchasePrice": 130.0
+  },
+  {
+    "name": "AZUCAR FRUTA DEL MONJE",
+    "purchaseQuantity": 700.0,
+    "unitCode": "GR",
+    "purchasePrice": 699.0
+  },
+  {
+    "name": "AZUCAR GLASS ZULKA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 50.0
+  },
+  {
+    "name": "AZUCAR MASCABADA",
+    "purchaseQuantity": 2000.0,
+    "unitCode": "GR",
+    "purchasePrice": 0.0
+  },
+  {
+    "name": "AZUCAR MORENA",
+    "purchaseQuantity": 2000.0,
+    "unitCode": "GR",
+    "purchasePrice": 95.0
+  },
+  {
+    "name": "AZUCAR REFINADA",
+    "purchaseQuantity": 2000.0,
+    "unitCode": "GR",
+    "purchasePrice": 85.0
+  },
+  {
+    "name": "BETUN WILTHON",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 65.0
+  },
+  {
+    "name": "BICARBONATO",
+    "purchaseQuantity": 227.0,
+    "unitCode": "GR",
+    "purchasePrice": 15.0
+  },
+  {
+    "name": "BUBULUBUS",
+    "purchaseQuantity": 15.0,
+    "unitCode": "PZA",
+    "purchasePrice": 50.0
+  },
+  {
+    "name": "CAFE SOLUBLE NESCAFE",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 746.0
+  },
+  {
+    "name": "CANELA EN POLVO",
+    "purchaseQuantity": 771.0,
+    "unitCode": "GR",
+    "purchasePrice": 340.0
+  },
+  {
+    "name": "CARNE DE RES MOLIDA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 200.0
+  },
+  {
+    "name": "CARNE MOLIDA",
+    "purchaseQuantity": 250.0,
+    "unitCode": "GR",
+    "purchasePrice": 57.0
+  },
+  {
+    "name": "CARNE MOLIDA 80/20",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 115.0
+  },
+  {
+    "name": "CEREZAS",
+    "purchaseQuantity": 3500.0,
+    "unitCode": "ML",
+    "purchasePrice": 300.0
+  },
+  {
+    "name": "CHISPAS DE CHOCOLATE COTS",
+    "purchaseQuantity": 2000.0,
+    "unitCode": "GR",
+    "purchasePrice": 650.0
+  },
+  {
+    "name": "CHOCO SEMI AMARGO TURÍN",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 0.0
+  },
+  {
+    "name": "CHOCOLATE ALPEZZI",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 140.0
+  },
+  {
+    "name": "CHOCOLATE AMARGO TURÍN",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 256.0
+  },
+  {
+    "name": "CHOCOLATE FERRERO",
+    "purchaseQuantity": 16.0,
+    "unitCode": "PZA",
+    "purchasePrice": 119.0
+  },
+  {
+    "name": "CHOCOLATE LACTEO",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 220.0
+  },
+  {
+    "name": "CHOCOLATE SICAO SUCEDANEO",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 150.0
+  },
+  {
+    "name": "CHOCOLATE TURIN LÁCTEO",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 275.0
+  },
+  {
+    "name": "COCO RALLADO",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 1.0
+  },
+  {
+    "name": "COCOA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 280.0
+  },
+  {
+    "name": "CREMA ÁCIDA",
+    "purchaseQuantity": 9000.0,
+    "unitCode": "ML",
+    "purchasePrice": 75.0
+  },
+  {
+    "name": "CREMA BATIDA PURATOS",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 100.0
+  },
+  {
+    "name": "CREMA DE AVELLANAS",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 100.0
+  },
+  {
+    "name": "CREMA DE CACAHUETE KETO",
+    "purchaseQuantity": 1013.0,
+    "unitCode": "GR",
+    "purchasePrice": 209.0
+  },
+  {
+    "name": "CREMA IRLANDESA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "ML",
+    "purchasePrice": 243.0
+  },
+  {
+    "name": "CREMA PARA BATIR LYNCOTT",
+    "purchaseQuantity": 980.0,
+    "unitCode": "GR",
+    "purchasePrice": 123.0
+  },
+  {
+    "name": "CREMOR TARTARO",
+    "purchaseQuantity": 100.0,
+    "unitCode": "GR",
+    "purchasePrice": 35.0
+  },
+  {
+    "name": "DURAZNOS EN ALMÍBAR LATA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 60.0
+  },
+  {
+    "name": "FONDANT",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 110.0
+  },
+  {
+    "name": "FRUTOS ROJOS",
+    "purchaseQuantity": 1810.0,
+    "unitCode": "GR",
+    "purchasePrice": 364.0
+  },
+  {
+    "name": "GALLETA OREO",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 20.0
+  },
+  {
+    "name": "GALLETAS MARIA",
+    "purchaseQuantity": 5.0,
+    "unitCode": "PZA",
+    "purchasePrice": 58.0
+  },
+  {
+    "name": "GANASHE DE CHOCOLATE",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "ML",
+    "purchasePrice": 1000.0
+  },
+  {
+    "name": "GELATINA AGUA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 11.0
+  },
+  {
+    "name": "GLISERINA",
+    "purchaseQuantity": 4564.0,
+    "unitCode": "ML",
+    "purchasePrice": 16.0
+  },
+  {
+    "name": "GLUCOSA",
+    "purchaseQuantity": 654.0,
+    "unitCode": "ML",
+    "purchasePrice": 17.0
+  },
+  {
+    "name": "GRAGEAS MINI BLANCAS",
+    "purchaseQuantity": 500.0,
+    "unitCode": "GR",
+    "purchasePrice": 40.0
+  },
+  {
+    "name": "GRENETINA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 300.0
+  },
+  {
+    "name": "HARINA DE ALMENDRA",
+    "purchaseQuantity": 1361.0,
+    "unitCode": "GR",
+    "purchasePrice": 270.0
+  },
+  {
+    "name": "HARINA DE ALMENDRAS S/GLU",
+    "purchaseQuantity": 250.0,
+    "unitCode": "GR",
+    "purchasePrice": 110.0
+  },
+  {
+    "name": "HARINA DE ARROZ",
+    "purchaseQuantity": 400.0,
+    "unitCode": "GR",
+    "purchasePrice": 28.5
+  },
+  {
+    "name": "HARINA DE COCO",
+    "purchaseQuantity": 300.0,
+    "unitCode": "GR",
+    "purchasePrice": 88.0
+  },
+  {
+    "name": "HARINA DE GARBANZO",
+    "purchaseQuantity": 500.0,
+    "unitCode": "GR",
+    "purchasePrice": 57.0
+  },
+  {
+    "name": "HARINA DE TRIGO",
+    "purchaseQuantity": 10000.0,
+    "unitCode": "GR",
+    "purchasePrice": 0.0
+  },
+  {
+    "name": "HARINA HOT CAKES",
+    "purchaseQuantity": 800.0,
+    "unitCode": "GR",
+    "purchasePrice": 30.5
+  },
+  {
+    "name": "HOJUELA DE MAIZ",
+    "purchaseQuantity": 250.0,
+    "unitCode": "GR",
+    "purchasePrice": 23.0
+  },
+  {
+    "name": "HUEVO",
+    "purchaseQuantity": 30.0,
+    "unitCode": "PZA",
+    "purchasePrice": 117.0
+  },
+  {
+    "name": "JUGO DE NARANJA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "ML",
+    "purchasePrice": 60.0
+  },
+  {
+    "name": "KIT KAT",
+    "purchaseQuantity": 9.0,
+    "unitCode": "PZA",
+    "purchasePrice": 13.0
+  },
+  {
+    "name": "LECHERA",
+    "purchaseQuantity": 900.0,
+    "unitCode": "ML",
+    "purchasePrice": 62.0
+  },
+  {
+    "name": "LECHERA PZA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 25.0
+  },
+  {
+    "name": "LECHE 3 LECHES",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "ML",
+    "purchasePrice": 70.0
+  },
+  {
+    "name": "LECHE CLAVEL",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 23.0
+  },
+  {
+    "name": "LECHE DE COCO",
+    "purchaseQuantity": 946.0,
+    "unitCode": "ML",
+    "purchasePrice": 47.0
+  },
+  {
+    "name": "LECHE EN POLVO",
+    "purchaseQuantity": 460.0,
+    "unitCode": "GR",
+    "purchasePrice": 42.0
+  },
+  {
+    "name": "LECHE ENTERA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "ML",
+    "purchasePrice": 29.0
+  },
+  {
+    "name": "LEVADURA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 1.0
+  },
+  {
+    "name": "LICOR 43",
+    "purchaseQuantity": 700.0,
+    "unitCode": "ML",
+    "purchasePrice": 510.0
+  },
+  {
+    "name": "LICOR DEL 43",
+    "purchaseQuantity": 700.0,
+    "unitCode": "ML",
+    "purchasePrice": 539.0
+  },
+  {
+    "name": "MAIZENA",
+    "purchaseQuantity": 425.0,
+    "unitCode": "GR",
+    "purchasePrice": 55.0
+  },
+  {
+    "name": "MAMUT EG",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 6.0
+  },
+  {
+    "name": "MAMUT G",
+    "purchaseQuantity": 8.0,
+    "unitCode": "PZA",
+    "purchasePrice": 24.0
+  },
+  {
+    "name": "MAMUT MINI",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 1.0
+  },
+  {
+    "name": "MANGA ZARZAMORA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 45.0
+  },
+  {
+    "name": "MANTECA INCA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 95.0
+  },
+  {
+    "name": "MANTEQUILLA",
+    "purchaseQuantity": 5000.0,
+    "unitCode": "GR",
+    "purchasePrice": 1000.0
+  },
+  {
+    "name": "MARGARINA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 1.0
+  },
+  {
+    "name": "MARGARINA FLEX ROJA",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 70.0
+  },
+  {
+    "name": "MATCHA",
+    "purchaseQuantity": 60.0,
+    "unitCode": "GR",
+    "purchasePrice": 154.0
+  },
+  {
+    "name": "MERMELADA CHABACANO",
+    "purchaseQuantity": 440.0,
+    "unitCode": "ML",
+    "purchasePrice": 80.0
+  },
+  {
+    "name": "MIEL KARO",
+    "purchaseQuantity": 680.0,
+    "unitCode": "ML",
+    "purchasePrice": 44.0
+  },
+  {
+    "name": "MIX FRUTAS SECAS",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 180.0
+  },
+  {
+    "name": "NESCAFE CLASICO",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 746.0
+  },
+  {
+    "name": "NUEZ INDIA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 1.0
+  },
+  {
+    "name": "NUEZ PECANA",
+    "purchaseQuantity": 908.0,
+    "unitCode": "GR",
+    "purchasePrice": 349.0
+  },
+  {
+    "name": "PASTA HOJALDRE",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 50.0
+  },
+  {
+    "name": "PISTACHES",
+    "purchaseQuantity": 680.0,
+    "unitCode": "GR",
+    "purchasePrice": 439.0
+  },
+  {
+    "name": "POLVO MERENGUE",
+    "purchaseQuantity": 100.0,
+    "unitCode": "GR",
+    "purchasePrice": 35.0
+  },
+  {
+    "name": "PÉTALOS DE ROSA",
+    "purchaseQuantity": 1.0,
+    "unitCode": "PZA",
+    "purchasePrice": 20.0
+  },
+  {
+    "name": "QUESO BOLA",
+    "purchaseQuantity": 225.0,
+    "unitCode": "GR",
+    "purchasePrice": 100.0
+  },
+  {
+    "name": "QUESO PHILADELPHIA",
+    "purchaseQuantity": 180.0,
+    "unitCode": "GR",
+    "purchasePrice": 0.0
+  },
+  {
+    "name": "QUESO TIPO PHILADELPHIA",
+    "purchaseQuantity": 1036.0,
+    "unitCode": "GR",
+    "purchasePrice": 192.0
+  },
+  {
+    "name": "ROYAL",
+    "purchaseQuantity": 110.0,
+    "unitCode": "GR",
+    "purchasePrice": 10.5
+  },
+  {
+    "name": "SAL",
+    "purchaseQuantity": 1000.0,
+    "unitCode": "GR",
+    "purchasePrice": 14.9
+  },
+  {
+    "name": "TRADIPAN",
+    "purchaseQuantity": 5.0,
+    "unitCode": "ML",
+    "purchasePrice": 21.0
+  },
+  {
+    "name": "VAINILLA",
+    "purchaseQuantity": 150.0,
+    "unitCode": "ML",
+    "purchasePrice": 11.0
+  },
+  {
+    "name": "YOGUR NATURAL SIN AZUCAR",
+    "purchaseQuantity": 900.0,
+    "unitCode": "ML",
+    "purchasePrice": 55.0
+  },
+  {
+    "name": "YOGURT GRIEGO SIN AZUCAR",
+    "purchaseQuantity": 145.0,
+    "unitCode": "GR",
+    "purchasePrice": 17.0
+  },
+  {
+    "name": "YOGURT NATURAL OIKOW",
+    "purchaseQuantity": 900.0,
+    "unitCode": "ML",
+    "purchasePrice": 99.0
+  },
+  {
+    "name": "YOGURTH NATURAL YOPLAIT",
+    "purchaseQuantity": 450.0,
+    "unitCode": "ML",
+    "purchasePrice": 50.0
+  }
+]
