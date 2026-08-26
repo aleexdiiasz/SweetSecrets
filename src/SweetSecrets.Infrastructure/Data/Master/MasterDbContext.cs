@@ -30,6 +30,7 @@ public class MasterDbContext
         ConfigureUserTenant(builder);
         ConfigurePlatformAuditLogs(builder);
         ConfigureUserSessions(builder);
+        ConfigureTenantSequence(builder);
     }
 
     private static void ConfigureTenants(ModelBuilder builder)
@@ -188,5 +189,12 @@ public class MasterDbContext
 
             entity.HasIndex(x => x.LastActivityAt);
         });
+    }
+
+    private static void ConfigureTenantSequence(ModelBuilder builder)
+    {
+        builder.HasSequence<long>("tenant_number_seq")
+            .StartsAt(1)
+            .IncrementsBy(1);
     }
 }

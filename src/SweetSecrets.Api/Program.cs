@@ -14,6 +14,7 @@ using SweetSecrets.Api.Middleware;
 using SweetSecrets.Application.Common.Tenancy;
 using SweetSecrets.Infrastructure.Data.Tenant;
 using SweetSecrets.Infrastructure.Services.Tenancy;
+using SweetSecrets.Infrastructure.Data.Tenant.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +89,14 @@ builder.Services.AddScoped<IPlatformUserQueryService, PlatformUserQueryService>(
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services.AddScoped<ITenantDatabaseManager, PostgresTenantDatabaseManager>();
+
+builder.Services.AddScoped<ITenantIdentifierGenerator, PostgresTenantIdentifierGenerator>();
+
+builder.Services.AddScoped<ITenantRegistryService, TenantRegistryService>();
+
+builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+
+builder.Services.AddScoped<ITenantSeedService, TenantSeedService>();
 
 // Add services to the container.
 
