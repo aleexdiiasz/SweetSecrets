@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:18.6
+    container_name: sweetsecrets-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: sweetsecrets_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: sweetsecrets_master
+
+    ports:
+      - "127.0.0.1:5432:5432"
+
+    volumes:
+      - sweetsecrets_postgres_data:/var/lib/postgresql
+
+    secrets:
+      - postgres_password
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U sweetsecrets_admin -d sweetsecrets_master"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+secrets:
+  postgres_password:
+    file: ./docker/secrets/postgres_password.txt
+
+volumes:
+  sweetsecrets_postgres_data:
