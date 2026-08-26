@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SweetSecrets.Contracts.Auth;
+using SweetSecrets.Application.Common.Registration;
 
 namespace SweetSecrets.Api.Controllers;
 
@@ -10,17 +11,17 @@ namespace SweetSecrets.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly SweetSecrets.Application.Common.Authentication.IAuthenticationService _authenticationService;
+    private readonly ISelfRegistrationService _selfRegistrationService;
 
-    public AuthController(SweetSecrets.Application.Common.Authentication.IAuthenticationService authenticationService)
+    public AuthController(SweetSecrets.Application.Common.Authentication.IAuthenticationService authenticationService, ISelfRegistrationService selfRegistrationService)
     {
         _authenticationService = authenticationService;
+        _selfRegistrationService = selfRegistrationService;
     }
 
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult<LoginResponse>> Login(
-        LoginRequest request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<LoginResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         var result = await _authenticationService.LoginAsync(
             request.Email,
@@ -49,8 +50,7 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout(
-    CancellationToken cancellationToken)
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         var userIdValue =
             User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -74,6 +74,49 @@ public class AuthController : ControllerBase
             cancellationToken);
 
         return NoContent();
+    }
+
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<ActionResult<RegisterResponse>> Register(RegisterRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result =
+                await _selfRegistrationService.RegisterAsync(
+                    new SelfRegistrationCommand(
+                        request.BusinessName,
+                        request.FullName,
+                        request.Email,
+                        request.Password),
+                    cancellationToken);
+
+            return Ok(
+                new RegisterResponse
+                {
+                    UserId = result.UserId,
+                    TenantId = result.TenantId,
+                    TenantCode = result.TenantCode,
+                    BusinessName = result.BusinessName,
+                    Email = result.Email
+                });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(
+                new
+                {
+                    message = ex.Message
+                });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(
+                new
+                {
+                    message = ex.Message
+                });
+        }
     }
 
     [Authorize]
