@@ -16,6 +16,7 @@ using SweetSecrets.Infrastructure.Data.Tenant;
 using SweetSecrets.Infrastructure.Services.Tenancy;
 using SweetSecrets.Infrastructure.Data.Tenant.Seed;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 var masterConnectionString =
@@ -74,6 +75,34 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
+
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            return Task.CompletedTask;
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+
+        return Task.CompletedTask;
+    };
+
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+
+            return Task.CompletedTask;
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+
+        return Task.CompletedTask;
+    };
 });
 
 builder.Services.AddScoped<MasterDataInitializer>();
@@ -98,6 +127,14 @@ builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService
 
 builder.Services.AddScoped<ITenantSeedService, TenantSeedService>();
 
+builder.Services.AddScoped<ICurrentTenantResolver, CurrentTenantResolver>();
+
+builder.Services.AddScoped<ITenantDbContextFactory, CurrentTenantDbContextFactory>();
+
+builder.Services.AddScoped<ITenantUserProvisioningService, TenantUserProvisioningService>();
+
+builder.Services.AddScoped<ICurrentTenantDataService, CurrentTenantDataService>();
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -108,6 +145,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
