@@ -15,6 +15,8 @@ using SweetSecrets.Application.Common.Tenancy;
 using SweetSecrets.Infrastructure.Data.Tenant;
 using SweetSecrets.Infrastructure.Services.Tenancy;
 using SweetSecrets.Infrastructure.Data.Tenant.Seed;
+using SweetSecrets.Application.Common.Registration;
+using SweetSecrets.Infrastructure.Services.Registration;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -134,6 +136,9 @@ builder.Services.AddScoped<ITenantDbContextFactory, CurrentTenantDbContextFactor
 builder.Services.AddScoped<ITenantUserProvisioningService, TenantUserProvisioningService>();
 
 builder.Services.AddScoped<ICurrentTenantDataService, CurrentTenantDataService>();
+
+builder.Services.AddScoped<ISelfRegistrationService, SelfRegistrationService>();
+
 
 // Add services to the container.
 
