@@ -1,6 +1,6 @@
-﻿namespace SweetSecrets.Domain.Entities.Tenant;
+﻿namespace SweetSecrets.Contracts.Products;
 
-public class Product
+public sealed class ProductDetailResponse
 {
     public Guid Id { get; set; }
 
@@ -10,13 +10,17 @@ public class Product
 
     public Guid UnitId { get; set; }
 
-    public Unit Unit { get; set; } = null!;
+    public string UnitCode { get; set; } = string.Empty;
+
+    public string UnitName { get; set; } = string.Empty;
+
+    public string UnitSymbol { get; set; } = string.Empty;
 
     public decimal PurchasePrice { get; set; }
 
     public decimal UnitCost { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

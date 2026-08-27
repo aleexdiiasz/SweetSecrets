@@ -91,6 +91,11 @@ public class TenantDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Unit)
+            .WithMany()
+            .HasForeignKey(x => x.UnitId)
+            .OnDelete(DeleteBehavior.Restrict);
         });
     }
 
