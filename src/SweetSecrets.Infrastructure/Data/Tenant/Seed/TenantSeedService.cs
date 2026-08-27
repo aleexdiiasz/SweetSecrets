@@ -2,6 +2,7 @@
 using SweetSecrets.Application.Common.Tenancy;
 using SweetSecrets.Domain.Entities.Tenant;
 using System.Text.Json;
+using SweetSecrets.Domain.Enums;
 
 namespace SweetSecrets.Infrastructure.Data.Tenant.Seed;
 
@@ -37,6 +38,8 @@ public class TenantSeedService : ITenantSeedService
                 Code = "GR",
                 Name = "Gramo",
                 Symbol = "g",
+                MeasurementType = MeasurementType.Mass,
+                ConversionFactor = 1m,
                 IsActive = true
             },
 
@@ -46,6 +49,8 @@ public class TenantSeedService : ITenantSeedService
                 Code = "KG",
                 Name = "Kilogramo",
                 Symbol = "kg",
+                MeasurementType = MeasurementType.Mass,
+                ConversionFactor = 1000m,
                 IsActive = true
             },
 
@@ -55,6 +60,8 @@ public class TenantSeedService : ITenantSeedService
                 Code = "ML",
                 Name = "Mililitro",
                 Symbol = "ml",
+                MeasurementType = MeasurementType.Volume,
+                ConversionFactor = 1m,
                 IsActive = true
             },
 
@@ -64,6 +71,8 @@ public class TenantSeedService : ITenantSeedService
                 Code = "L",
                 Name = "Litro",
                 Symbol = "l",
+                MeasurementType = MeasurementType.Volume,
+                ConversionFactor = 1000m,
                 IsActive = true
             },
 
@@ -73,6 +82,8 @@ public class TenantSeedService : ITenantSeedService
                 Code = "PZA",
                 Name = "Pieza",
                 Symbol = "pza",
+                MeasurementType = MeasurementType.Count,
+                ConversionFactor = 1m,
                 IsActive = true
             }
         };
