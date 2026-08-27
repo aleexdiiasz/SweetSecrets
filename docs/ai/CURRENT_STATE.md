@@ -10,14 +10,14 @@ SweetSecrets
 
 ## Fase actual
 
-Recálculo automático de recetas implementado y validado.
+Conversión formal de unidades implementada y validada.
 
-El backend multi-tenant ya propaga cambios de costo unitario de productos hacia las recetas activas que los utilizan, conservando trazabilidad y aislamiento por tenant.
+El backend multi-tenant ya permite que un producto y un ingrediente de receta utilicen unidades diferentes siempre que pertenezcan al mismo tipo de medida.
 
 Actualmente se está cerrando:
 
 ```text
-TEN-009 - Automatic Recipe Recalculation
+TEN-010 - Unit Conversions
 ```
 
 Estado:
@@ -26,31 +26,26 @@ Estado:
 Implementado
 Build OK
 Pruebas funcionales OK
-Documentación técnica RECIPE_RECALCULATION.md creada
+Migración TEN002 aplicada y validada
+Documentación UNIT_CONVERSIONS.md creada
 Pendiente Git / Pull Request
 ```
 
-TEN-008 fue integrado a `develop` mediante el Pull Request #5.
+TEN-009 fue integrado a `develop` mediante el Pull Request #6.
 
-TEN-009 cubre:
+TEN-010 agrega:
 
 ```text
-Product.UnitCost cambia
-↓
-buscar recetas activas afectadas
-↓
-actualizar RecipeItem.UnitCost
-↓
-recalcular RecipeItem.TotalCost
-↓
-recalcular Recipe.TotalCost
-↓
-recalcular Recipe.SuggestedPrice
-↓
-crear RecipeCostHistory
+MeasurementType
+ConversionFactor
+GR ↔ KG
+ML ↔ L
+conversiones al agregar RecipeItem
+recálculo automático con conversiones
+cambio compatible de Product.UnitId
+protección de cambios incompatibles
+sincronización al reactivar recetas
 ```
-
-También protege cambios de unidad en productos ya utilizados y sincroniza costos al reactivar recetas inactivas.
 
 ---
 
@@ -1144,10 +1139,32 @@ Contexto:
 TenantDbContext
 ```
 
-Migración:
+Migraciones actuales:
 
 ```text
 TEN001_InitialTenant
+TEN002_AddUnitConversions
+```
+
+`TEN001_InitialTenant` crea la estructura operacional inicial del tenant.
+
+`TEN002_AddUnitConversions` agrega soporte formal de conversiones a la tabla:
+
+```text
+units
+```
+
+mediante:
+
+```text
+MeasurementType integer NOT NULL
+ConversionFactor numeric(18,6) NOT NULL
+```
+
+La arquitectura continúa siendo:
+
+```text
+1 PostgreSQL DB independiente por tenant
 ```
 
 ---
@@ -1163,6 +1180,23 @@ sweetsecrets_tenant_template
 Se utiliza para probar migraciones tenant.
 
 No pertenece a un usuario real.
+
+Migraciones aplicadas:
+
+```text
+TEN001_InitialTenant
+TEN002_AddUnitConversions
+```
+
+TEN002 fue validada estructuralmente en el template.
+
+Al momento de la validación el template contenía:
+
+```text
+0 unidades
+```
+
+por lo que se validó ahí la estructura de columnas y el backfill real se comprobó posteriormente en tenants con datos.
 
 ---
 
@@ -1191,14 +1225,40 @@ Entidad:
 Unit
 ```
 
+Campos actuales:
+
+```text
+Id
+Code
+Name
+Symbol
+MeasurementType
+ConversionFactor
+IsActive
+```
+
+Enum:
+
+```text
+MeasurementType
+```
+
+Valores:
+
+```text
+Mass   = 1
+Volume = 2
+Count  = 3
+```
+
 Seed inicial:
 
 ```text
-GR  - Gramo
-KG  - Kilogramo
-ML  - Mililitro
-L   - Litro
-PZA - Pieza
+GR  - Gramo      - Mass   - 1
+KG  - Kilogramo  - Mass   - 1000
+ML  - Mililitro  - Volume - 1
+L   - Litro      - Volume - 1000
+PZA - Pieza      - Count  - 1
 ```
 
 Total inicial:
@@ -1206,6 +1266,25 @@ Total inicial:
 ```text
 5
 ```
+
+`ConversionFactor` representa cuántas unidades base contiene cada unidad.
+
+Compatibilidad permitida:
+
+```text
+GR ↔ KG
+ML ↔ L
+```
+
+`PZA` pertenece a `Count` y no se convierte hacia unidades de masa o volumen.
+
+La compatibilidad se determina por:
+
+```text
+MeasurementType
+```
+
+y no mediante condicionales hardcodeados por `Code` durante la operación normal.
 
 ---
 
@@ -1743,9 +1822,53 @@ UnitCost
 TotalCost
 ```
 
-Las recetas son relacionales y no se almacenan como un único JSON.
+Las recetas son relacionales.
 
-El detalle de receta expone cada ingrediente con:
+No se almacenan como un único JSON.
+
+`RecipeItem.UnitId` representa la unidad utilizada específicamente dentro de la receta y puede ser diferente de:
+
+```text
+Product.UnitId
+```
+
+siempre que ambas unidades compartan el mismo:
+
+```text
+MeasurementType
+```
+
+Fórmula de conversión del costo unitario:
+
+```text
+RecipeItem.UnitCost
+=
+Product.UnitCost
+× RecipeUnit.ConversionFactor
+÷ ProductUnit.ConversionFactor
+```
+
+Después:
+
+```text
+RecipeItem.TotalCost
+=
+RecipeItem.Quantity × RecipeItem.UnitCost
+```
+
+Ejemplos validados:
+
+```text
+Product KG 80 → RecipeItem 250 GR
+UnitCost receta = 0.08
+TotalCost = 20
+
+Product GR 0.30 → RecipeItem 0.25 KG
+UnitCost receta = 300
+TotalCost = 75
+```
+
+El detalle de receta expone:
 
 ```text
 Id
@@ -1759,15 +1882,6 @@ UnitSymbol
 UnitCost
 TotalCost
 ```
-
-Al agregar un ingrediente:
-
-```text
-UnitCost = Product.UnitCost
-TotalCost = Quantity × UnitCost
-```
-
-Al editar `Quantity` o eliminar un ingrediente se recalculan los costos de la receta.
 
 ---
 
@@ -1857,14 +1971,6 @@ Reason
 CreatedAt
 ```
 
-La lógica automática está implementada para:
-
-```text
-cambios de ingredientes
-cambios de Product.UnitCost
-sincronización al reactivar recetas
-```
-
 Eventos actuales:
 
 ```text
@@ -1872,6 +1978,7 @@ RECIPE_ITEM_ADDED
 RECIPE_ITEM_UPDATED
 RECIPE_ITEM_REMOVED
 PRODUCT_UNIT_COST_CHANGED
+PRODUCT_UNIT_CHANGED
 RECIPE_REACTIVATED_COST_SYNC
 ```
 
@@ -1881,16 +1988,31 @@ Solo se crea historial cuando:
 PreviousCost != NewCost
 ```
 
-Movimientos validados:
+TEN-010 agregó trazabilidad específica para cambios de unidad base del producto:
 
 ```text
-0  → 54  RECIPE_ITEM_ADDED
-54 → 60  PRODUCT_UNIT_COST_CHANGED
-60 → 75  PRODUCT_UNIT_COST_CHANGED
-75 → 90  RECIPE_REACTIVATED_COST_SYNC
+PRODUCT_UNIT_CHANGED
 ```
 
-Los movimientos fueron comprobados mediante la API y, para los escenarios previos, directamente en PostgreSQL.
+Ejemplo validado:
+
+```text
+120 → 20.10
+PRODUCT_UNIT_CHANGED
+```
+
+La reactivación con conversiones también conserva:
+
+```text
+RECIPE_REACTIVATED_COST_SYNC
+```
+
+Ejemplo validado:
+
+```text
+20.10 → 25.10
+RECIPE_REACTIVATED_COST_SYNC
+```
 
 Endpoint:
 
@@ -2933,6 +3055,383 @@ Build succeeded
 
 ---
 
+# Estado de pruebas de TEN-010
+
+Rama:
+
+```text
+feature/TEN-010-unit-conversions
+```
+
+Tenant funcional principal:
+
+```text
+000004
+sweetsecrets_tenant_000004
+```
+
+## Migración TEN002
+
+Migración:
+
+```text
+20260827194205_TEN002_AddUnitConversions
+```
+
+Agrega:
+
+```text
+MeasurementType integer NOT NULL
+ConversionFactor numeric(18,6) NOT NULL
+```
+
+La migración fue corregida manualmente para evitar defaults inválidos `0` en datos existentes.
+
+Proceso:
+
+```text
+crear columnas nullable
+↓
+backfill por Code
+↓
+SET NOT NULL
+```
+
+Backfill:
+
+```text
+GR  → Mass   → 1
+KG  → Mass   → 1000
+ML  → Volume → 1
+L   → Volume → 1000
+PZA → Count  → 1
+```
+
+## Tenant template
+
+TEN002 aplicada correctamente a:
+
+```text
+sweetsecrets_tenant_template
+```
+
+Estructura validada:
+
+```text
+ConversionFactor numeric(18,6) NOT NULL
+MeasurementType integer NOT NULL
+```
+
+El template tenía `0` unidades durante la prueba.
+
+## Tenants activos migrados
+
+MASTER reportó:
+
+```text
+000001 Active
+000003 Active
+000004 Active
+000002 Failed
+```
+
+TEN002 fue aplicada a:
+
+```text
+sweetsecrets_tenant_000001
+sweetsecrets_tenant_000003
+sweetsecrets_tenant_000004
+```
+
+Los tres registran:
+
+```text
+TEN001_InitialTenant
+TEN002_AddUnitConversions
+```
+
+El tenant `000002` no fue modificado porque permanece `Failed` como evidencia histórica.
+
+## Tenant 000001 histórico
+
+Se encontró:
+
+```text
+Units = 0
+Products = 0
+Settings = 0
+Recipes = 0
+```
+
+Por eso TEN002 reportó:
+
+```text
+UPDATE 0
+```
+
+La migración terminó correctamente y no se agregó seed artificial para conservar el estado histórico de la prueba.
+
+## Tenant 000003
+
+TEN002 realizó:
+
+```text
+UPDATE 5
+```
+
+## Tenant 000004
+
+TEN002 realizó:
+
+```text
+UPDATE 5
+```
+
+Valores comprobados:
+
+```text
+GR  | 1 | 1.000000
+KG  | 1 | 1000.000000
+ML  | 2 | 1.000000
+L   | 2 | 1000.000000
+PZA | 3 | 1.000000
+```
+
+## Conversión GR → KG
+
+Producto:
+
+```text
+Unit = GR
+UnitCost = 0.30
+```
+
+Ingrediente:
+
+```text
+Quantity = 0.25
+Unit = KG
+```
+
+Resultado:
+
+```text
+RecipeItem.UnitCost = 300
+RecipeItem.TotalCost = 75
+Recipe.TotalCost = 75
+Recipe.SuggestedPrice = 300
+```
+
+## Recálculo con unidad convertida
+
+Cambio del producto:
+
+```text
+UnitCost 0.30 → 0.40 por GR
+```
+
+La receta conservó el ingrediente en KG:
+
+```text
+RecipeItem.UnitCost = 400
+RecipeItem.TotalCost = 100
+Recipe.TotalCost = 100
+Recipe.SuggestedPrice = 400
+```
+
+Historial:
+
+```text
+75 → 100
+PRODUCT_UNIT_COST_CHANGED
+```
+
+## Incompatibilidad
+
+Se intentó utilizar:
+
+```text
+Product = GR / Mass
+RecipeItem = ML / Volume
+```
+
+Resultado:
+
+```text
+409 Conflict
+```
+
+Mensaje:
+
+```text
+La unidad del ingrediente no es compatible con la unidad del producto.
+```
+
+## Conversión KG → GR
+
+Producto creado:
+
+```text
+PRODUCTO KG PRUEBA TEN-010
+Unit = KG
+PurchaseQuantity = 1
+PurchasePrice = 80
+UnitCost = 80
+```
+
+Ingrediente:
+
+```text
+Quantity = 250
+Unit = GR
+```
+
+Resultado:
+
+```text
+RecipeItem.UnitCost = 0.08
+RecipeItem.TotalCost = 20
+```
+
+## Receta combinada
+
+Se validaron simultáneamente:
+
+```text
+0.25 KG → TotalCost 100
+250 GR  → TotalCost 20
+```
+
+Resultado:
+
+```text
+Recipe.TotalCost = 120
+Recipe.SuggestedPrice = 480
+```
+
+## Cambio compatible Product.Unit
+
+Se modificó un producto ya utilizado:
+
+```text
+GR → KG
+```
+
+Fue permitido porque:
+
+```text
+Mass = Mass
+```
+
+Aunque el valor numérico de `UnitCost` permaneció `0.40`, el significado cambió a costo por KG.
+
+El RecipeItem en KG se recalculó:
+
+```text
+Quantity = 0.25 KG
+UnitCost = 0.40
+TotalCost = 0.10
+```
+
+La receta completa quedó:
+
+```text
+TotalCost = 20.10
+SuggestedPrice = 80.40
+```
+
+Historial:
+
+```text
+120 → 20.10
+PRODUCT_UNIT_CHANGED
+```
+
+## Cambio incompatible Product.Unit
+
+Se intentó:
+
+```text
+KG / Mass → ML / Volume
+```
+
+Resultado:
+
+```text
+409 Conflict
+```
+
+Mensaje:
+
+```text
+No se puede cambiar la unidad del producto porque no es compatible con las unidades utilizadas en sus recetas.
+```
+
+Después del rechazo el producto conservó:
+
+```text
+Unit = KG
+PurchaseQuantity = 800
+PurchasePrice = 320
+UnitCost = 0.40
+UpdatedAt sin cambio
+```
+
+## Reactivación con conversión
+
+Receta desactivada:
+
+```text
+IsActive = false
+TotalCost = 20.10
+```
+
+Mientras estaba inactiva se modificó un producto:
+
+```text
+Product.Unit = KG
+UnitCost 80 → 100
+```
+
+El RecipeItem en GR conservó mientras estuvo inactivo:
+
+```text
+UnitCost = 0.08
+TotalCost = 20
+```
+
+Al reactivar:
+
+```text
+100 por KG
+→ 0.10 por GR
+→ 250 GR = 25
+```
+
+Resultado final:
+
+```text
+Recipe.TotalCost = 25.10
+Recipe.SuggestedPrice = 100.40
+```
+
+Historial:
+
+```text
+20.10 → 25.10
+RECIPE_REACTIVATED_COST_SYNC
+```
+
+## Build
+
+Todos los bloques incrementales finalizaron con:
+
+```text
+Build succeeded
+```
+
+---
+
 
 # Swagger
 
@@ -3138,10 +3637,48 @@ TEN-008 está cerrado.
 
 # TEN-009 Git
 
-Rama actual:
+Rama:
 
 ```text
 feature/TEN-009-recipe-recalculation
+```
+
+Commit:
+
+```text
+d2a5ebe feat: add automatic recipe recalculation
+```
+
+Pull Request:
+
+```text
+#6
+TEN-009 - Automatic recipe recalculation
+```
+
+Estado:
+
+```text
+Merged → develop
+```
+
+Después del merge:
+
+```text
+develop sincronizado
+working tree clean
+```
+
+TEN-009 está cerrado.
+
+---
+
+# TEN-010 Git
+
+Rama actual:
+
+```text
+feature/TEN-010-unit-conversions
 ```
 
 Estado funcional:
@@ -3150,15 +3687,21 @@ Estado funcional:
 Implementado
 Build OK
 Pruebas funcionales OK
-RECIPE_RECALCULATION.md creado
+TEN002 aplicada y validada
+UNIT_CONVERSIONS.md creado
 CURRENT_STATE.md actualizado
 ```
 
-Archivos funcionales principales:
+Cambios principales:
 
 ```text
-src/SweetSecrets.Infrastructure/Services/Products/ProductCommandService.cs
-src/SweetSecrets.Infrastructure/Services/Recipes/RecipeCommandService.cs
+Unit.cs
+MeasurementType.cs
+TenantDbContext.cs
+TenantSeedService.cs
+TEN002_AddUnitConversions
+ProductCommandService.cs
+RecipeCommandService.cs
 ```
 
 Pendiente:
@@ -3171,7 +3714,7 @@ push
 Pull Request → develop
 ```
 
-No asumir que TEN-009 está en `develop` hasta completar el Pull Request.
+No asumir que TEN-010 está en `develop` hasta completar el Pull Request.
 
 ---
 
@@ -3193,6 +3736,7 @@ docs/technical/TENANT_SELF_REGISTRATION.md
 docs/technical/PRODUCTS.md
 docs/technical/RECIPES.md
 docs/technical/RECIPE_RECALCULATION.md
+docs/technical/UNIT_CONVERSIONS.md
 docs/ai/CURRENT_STATE.md
 ```
 
@@ -3278,25 +3822,20 @@ para seleccionar base tenant.
 
 # Módulos operativos todavía no implementados
 
-## Conversiones de unidades
-
-Pendiente diseñar formalmente:
-
-```text
-KG ↔ GR
-L ↔ ML
-```
-
-Actualmente la unidad del ingrediente debe coincidir con la unidad base del producto.
-
-Por seguridad, un producto utilizado en recetas no puede cambiar de unidad hasta que exista una capa formal de conversión.
-
 ## Configuración
 
 Pendiente CRUD de:
 
 ```text
 settings
+```
+
+La tabla y el seed inicial ya existen.
+
+Configuración inicial conocida:
+
+```text
+MULTIPLIER = 3
 ```
 
 ## Usuarios tenant
@@ -3309,6 +3848,16 @@ Pendiente:
 - permisos;
 - administración por TENANT_OWNER.
 
+## Frontend operacional
+
+Pendiente construir la experiencia final en:
+
+```text
+Blazor WebAssembly PWA
+```
+
+consumiendo únicamente la API.
+
 ---
 
 # Funcionalidades todavía no implementadas
@@ -3316,7 +3865,6 @@ Pendiente:
 - confirmación de correo;
 - recuperación de contraseña;
 - cambio de contraseña desde UI;
-- conversiones formales de unidades;
 - CRUD configuración;
 - administración completa de usuarios tenant;
 - notificaciones;
@@ -3455,7 +4003,7 @@ Cada nueva cuenta obtiene:
 Objetivo inmediato:
 
 ```text
-Cerrar Git de TEN-009
+Cerrar Git de TEN-010
 ```
 
 Secuencia:
@@ -3474,48 +4022,51 @@ merge → develop
 sincronizar develop local
 ```
 
-Después del merge de TEN-009 se debe definir el siguiente bloque funcional.
+Después del merge de TEN-010 debe definirse formalmente el siguiente issue.
 
-Pendientes prioritarios actualmente:
+Pendientes prioritarios actuales:
 
 ```text
-conversiones formales de unidades
 CRUD de configuración tenant
 administración de TENANT_USER
 frontend Blazor WebAssembly PWA
 ```
 
-No se debe asignar un número de issue al siguiente bloque hasta definir formalmente su alcance.
+No se debe asignar un número al siguiente bloque hasta definir su alcance.
 
 ---
 
-# TEN-009 implementado
+# TEN-010 implementado
 
 TEN-007 Products está cerrado.
 
 TEN-008 Recipes está cerrado mediante PR #5.
 
-TEN-009 Automatic Recipe Recalculation quedó implementado funcionalmente.
+TEN-009 Automatic Recipe Recalculation está cerrado mediante PR #6.
+
+TEN-010 Unit Conversions quedó implementado funcionalmente.
 
 Componentes completados:
 
 ```text
-detección de cambio real de Product.UnitCost
-búsqueda de recetas activas afectadas
-actualización de RecipeItem.UnitCost
-actualización de RecipeItem.TotalCost
-recálculo de Recipe.TotalCost
-recálculo de Recipe.SuggestedPrice
-RecipeCostHistory con PRODUCT_UNIT_COST_CHANGED
-preservación de recetas inactivas
-sincronización de costo al reactivar
-RecipeCostHistory con RECIPE_REACTIVATED_COST_SYNC
-bloqueo de cambio de unidad en productos usados por recetas
-auditoría UpdatedAt / UpdatedBy
-aislamiento database-per-tenant
+MeasurementType
+ConversionFactor
+TEN002_AddUnitConversions
+backfill seguro de unidades existentes
+seed actualizado
+GR ↔ KG
+ML ↔ L
+validación por MeasurementType
+costo convertido al agregar RecipeItem
+recálculo automático con unidades convertidas
+cambio compatible de Product.UnitId
+bloqueo de cambios incompatibles
+RecipeCostHistory PRODUCT_UNIT_CHANGED
+reactivación con conversiones
+migración de tenants activos existentes
 ```
 
-Estado pendiente de TEN-009:
+Estado pendiente de TEN-010:
 
 ```text
 Git commit
@@ -3523,7 +4074,7 @@ push
 Pull Request → develop
 ```
 
-No iniciar otro módulo antes de cerrar TEN-009 en Git.
+No iniciar otro módulo antes de cerrar TEN-010 en Git.
 
 ---
 
@@ -3707,15 +4258,24 @@ Actualmente SweetSecrets ya tiene:
 ✅ Historial PRODUCT_UNIT_COST_CHANGED
 ✅ Recetas inactivas preservadas ante cambios de producto
 ✅ Sincronización de costos al reactivar
-✅ Historial RECIPE_REACTIVATED_COST_SYNC
-✅ Protección de cambio de unidad en productos usados
+✅ MeasurementType
+✅ ConversionFactor
+✅ TEN002_AddUnitConversions
+✅ GR ↔ KG
+✅ ML ↔ L
+✅ RecipeItem con unidad distinta al Product
+✅ Recálculo automático respetando conversiones
+✅ Cambio compatible de Product.UnitId
+✅ Historial PRODUCT_UNIT_CHANGED
+✅ Bloqueo de cambios de unidad incompatibles
+✅ Reactivación respetando conversiones
+✅ TEN002 aplicada a tenants activos existentes
 ```
 
 Pendiente principal:
 
 ```text
-⏳ Cerrar Git de TEN-009
-⏳ Conversiones de unidades
+⏳ Cerrar Git de TEN-010
 ⏳ Configuration CRUD
 ⏳ Administración TENANT_USER
 ⏳ Notifications
@@ -3730,24 +4290,36 @@ Pendiente principal:
 Rama:
 
 ```text
-feature/TEN-009-recipe-recalculation
+feature/TEN-010-unit-conversions
 ```
 
-TEN-009 ya:
+TEN-010 ya:
 
 ```text
 compila
 funciona
 fue probado
-RECIPE_RECALCULATION.md fue creado
+TEN002 fue creada
+TEN002 fue aplicada al template
+TEN002 fue aplicada a tenants activos existentes
+UNIT_CONVERSIONS.md fue creado
 CURRENT_STATE.md fue actualizado
 ```
 
-Cambios funcionales:
+Cambios principales:
 
 ```text
-ProductCommandService.cs
-RecipeCommandService.cs
+src/SweetSecrets.Domain/Entities/Tenant/Unit.cs
+src/SweetSecrets.Domain/Enums/MeasurementType.cs
+src/SweetSecrets.Infrastructure/Data/Tenant/TenantDbContext.cs
+src/SweetSecrets.Infrastructure/Data/Tenant/Seed/TenantSeedService.cs
+src/SweetSecrets.Infrastructure/Data/Tenant/Migrations/20260827194205_TEN002_AddUnitConversions.cs
+src/SweetSecrets.Infrastructure/Data/Tenant/Migrations/20260827194205_TEN002_AddUnitConversions.Designer.cs
+src/SweetSecrets.Infrastructure/Data/Tenant/Migrations/TenantDbContextModelSnapshot.cs
+src/SweetSecrets.Infrastructure/Services/Products/ProductCommandService.cs
+src/SweetSecrets.Infrastructure/Services/Recipes/RecipeCommandService.cs
+docs/technical/UNIT_CONVERSIONS.md
+docs/ai/CURRENT_STATE.md
 ```
 
 Se debe terminar:
@@ -3772,19 +4344,20 @@ No volver a implementar:
 
 ```text
 provisioning
-seed
-tenant resolution
+seed base
+resolver tenant
 autoregistro
-CRUD de productos
-historial de precio de productos
-CRUD de recetas
-gestión de RecipeItems
-historial de costos por cambios de ingredientes
-soft delete de recetas
+CRUD productos
+CRUD recetas
+RecipeItems
+historial de costos
 recálculo automático por Product.UnitCost
-sincronización al reactivar recetas
+soft delete / reactivación
+conversiones GR ↔ KG
+conversiones ML ↔ L
+cambio compatible de Product.UnitId
 ```
 
 Esos bloques ya existen y fueron validados.
 
-Después de cerrar TEN-009 debe definirse formalmente el siguiente issue antes de crear una nueva rama.
+Después de cerrar TEN-010 se debe definir formalmente el siguiente issue antes de crear una nueva rama.

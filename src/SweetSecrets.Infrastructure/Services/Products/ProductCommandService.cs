@@ -114,26 +114,27 @@ public sealed class ProductCommandService : IProductCommandService
                 cancellationToken);
 
         var product =
-            await dbContext.Products
-                .FirstOrDefaultAsync(
-                    x => x.Id == command.ProductId,
-                    cancellationToken);
+    await dbContext.Products
+        .Include(x => x.Unit)
+        .FirstOrDefaultAsync(
+            x => x.Id == command.ProductId,
+            cancellationToken);
 
         if (product is null)
         {
             return null;
         }
 
-        var unitExists =
-            await dbContext.Units
-                .AsNoTracking()
-                .AnyAsync(
-                    x =>
-                        x.Id == command.UnitId &&
-                        x.IsActive,
-                    cancellationToken);
+        var targetUnit =
+    await dbContext.Units
+        .AsNoTracking()
+        .FirstOrDefaultAsync(
+            x =>
+                x.Id == command.UnitId &&
+                x.IsActive,
+            cancellationToken);
 
-        if (!unitExists)
+        if (targetUnit is null)
         {
             throw new InvalidOperationException(
                 "La unidad seleccionada no existe o está inactiva.");
@@ -175,6 +176,12 @@ public sealed class ProductCommandService : IProductCommandService
 
         if (unitChanged)
         {
+            if (targetUnit.ConversionFactor <= 0)
+            {
+                throw new InvalidOperationException(
+                    "La configuración de conversión de la unidad seleccionada no es válida.");
+            }
+
             var productIsUsedInRecipes =
                 await dbContext.RecipeItems
                     .AsNoTracking()
@@ -182,10 +189,11 @@ public sealed class ProductCommandService : IProductCommandService
                         x => x.ProductId == product.Id,
                         cancellationToken);
 
-            if (productIsUsedInRecipes)
+            if (productIsUsedInRecipes &&
+                product.Unit.MeasurementType != targetUnit.MeasurementType)
             {
                 throw new InvalidOperationException(
-                    "No se puede cambiar la unidad de un producto que ya está siendo utilizado en recetas.");
+                    "No se puede cambiar la unidad del producto porque no es compatible con las unidades utilizadas en sus recetas.");
             }
         }
 
@@ -238,11 +246,12 @@ public sealed class ProductCommandService : IProductCommandService
                 cancellationToken);
         }
 
-        if (unitCostChanged)
+        if (unitCostChanged || unitChanged)
         {
             var affectedRecipes =
                 await dbContext.Recipes
                     .Include(x => x.Items)
+                    .ThenInclude(x => x.Unit)
                     .Where(x =>
                         x.IsActive &&
                         x.Items.Any(item =>
@@ -253,14 +262,34 @@ public sealed class ProductCommandService : IProductCommandService
             {
                 var previousRecipeCost = recipe.TotalCost;
 
-                foreach (var item in recipe.Items
-                             .Where(x => x.ProductId == product.Id))
+                foreach (var item in recipe.Items.Where(x => x.ProductId == product.Id))
                 {
-                    item.UnitCost = unitCost;
+                    if (item.Unit.MeasurementType != targetUnit.MeasurementType)
+                    {
+                        throw new InvalidOperationException(
+                            "La unidad del ingrediente no es compatible con la unidad del producto.");
+                    }
+
+                    if (targetUnit.ConversionFactor <= 0 || item.Unit.ConversionFactor <= 0)
+                    {
+                        throw new InvalidOperationException(
+                            "La configuración de conversión de unidades no es válida.");
+                    }
+
+                    var convertedUnitCost =
+                        Math.Round(
+                            unitCost *
+                            item.Unit.ConversionFactor /
+                            targetUnit.ConversionFactor,
+                            6,
+                            MidpointRounding.AwayFromZero);
+
+                    item.UnitCost =
+                        convertedUnitCost;
 
                     item.TotalCost =
                         Math.Round(
-                            item.Quantity * unitCost,
+                            item.Quantity * convertedUnitCost,
                             6,
                             MidpointRounding.AwayFromZero);
                 }
@@ -290,7 +319,7 @@ public sealed class ProductCommandService : IProductCommandService
                             RecipeId = recipe.Id,
                             PreviousCost = previousRecipeCost,
                             NewCost = recipe.TotalCost,
-                            Reason = "PRODUCT_UNIT_COST_CHANGED",
+                            Reason = unitChanged ? "PRODUCT_UNIT_CHANGED" : "PRODUCT_UNIT_COST_CHANGED",
                             CreatedAt = updatedAt
                         };
 
@@ -301,8 +330,7 @@ public sealed class ProductCommandService : IProductCommandService
             }
         }
 
-        await dbContext.SaveChangesAsync(
-            cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new UpdateProductResult(
             product.Id,
@@ -345,17 +373,13 @@ public sealed class ProductCommandService : IProductCommandService
             return true;
         }
 
-        product.IsActive =
-            isActive;
+        product.IsActive = isActive;
 
-        product.UpdatedAt =
-            DateTime.UtcNow;
+        product.UpdatedAt = DateTime.UtcNow;
 
-        product.UpdatedBy =
-            userId;
+        product.UpdatedBy = userId;
 
-        await dbContext.SaveChangesAsync(
-            cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
     }

@@ -61,6 +61,12 @@ public class TenantDbContext : DbContext
             entity.Property(x => x.Symbol)
                 .HasMaxLength(20)
                 .IsRequired();
+
+            entity.Property(x => x.MeasurementType).IsRequired();
+
+            entity.Property(x => x.ConversionFactor)
+                .HasPrecision(18, 6)
+                .IsRequired();
         });
     }
 

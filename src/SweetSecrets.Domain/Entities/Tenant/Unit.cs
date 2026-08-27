@@ -1,4 +1,6 @@
-﻿namespace SweetSecrets.Domain.Entities.Tenant;
+﻿using SweetSecrets.Domain.Enums;
+
+namespace SweetSecrets.Domain.Entities.Tenant;
 
 public class Unit
 {
@@ -9,6 +11,10 @@ public class Unit
     public string Name { get; set; } = string.Empty;
 
     public string Symbol { get; set; } = string.Empty;
+
+    public MeasurementType MeasurementType { get; set; }
+
+    public decimal ConversionFactor { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

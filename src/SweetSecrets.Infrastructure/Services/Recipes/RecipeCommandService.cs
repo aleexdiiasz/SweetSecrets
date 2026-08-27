@@ -117,9 +117,10 @@ public sealed class RecipeCommandService : IRecipeCommandService
 
         var product = await dbContext.Products
             .AsNoTracking()
+            .Include(x => x.Unit)
             .FirstOrDefaultAsync(
-                x => x.Id == command.ProductId,
-                cancellationToken);
+            x => x.Id == command.ProductId,
+            cancellationToken);
 
         if (product is null)
             throw new InvalidOperationException(
@@ -129,19 +130,25 @@ public sealed class RecipeCommandService : IRecipeCommandService
             throw new InvalidOperationException(
                 "No se puede utilizar un producto inactivo.");
 
-        var unitExists = await dbContext.Units
+        var targetUnit = await dbContext.Units
             .AsNoTracking()
-            .AnyAsync(
-                x => x.Id == command.UnitId && x.IsActive,
-                cancellationToken);
+            .FirstOrDefaultAsync(
+            x => x.Id == command.UnitId && x.IsActive,
+            cancellationToken);
 
-        if (!unitExists)
+        if (targetUnit is null)
             throw new InvalidOperationException(
                 "La unidad no existe o está inactiva.");
 
-        if (product.UnitId != command.UnitId)
+        if (product.Unit.MeasurementType != targetUnit.MeasurementType)
             throw new InvalidOperationException(
-                "La unidad del ingrediente debe coincidir con la unidad base del producto.");
+                "La unidad del ingrediente no es compatible con la unidad del producto.");
+
+        if (product.Unit.ConversionFactor <= 0 || targetUnit.ConversionFactor <= 0)
+        {
+            throw new InvalidOperationException(
+                "La configuración de conversión de unidades no es válida.");
+        }
 
         var duplicateProduct = recipe.Items
             .Any(x => x.ProductId == command.ProductId);
@@ -150,7 +157,12 @@ public sealed class RecipeCommandService : IRecipeCommandService
             throw new InvalidOperationException(
                 "El producto ya forma parte de la receta.");
 
-        var unitCost = product.UnitCost;
+        var unitCost = Math.Round(
+    product.UnitCost *
+    targetUnit.ConversionFactor /
+    product.Unit.ConversionFactor,
+    6,
+    MidpointRounding.AwayFromZero);
 
         var itemTotalCost = Math.Round(
             command.Quantity * unitCost,
@@ -459,11 +471,14 @@ public sealed class RecipeCommandService : IRecipeCommandService
             await _dbContextFactory.CreateAsync(cancellationToken);
 
         var recipe = await dbContext.Recipes
-            .Include(x => x.Items)
-            .ThenInclude(x => x.Product)
-            .FirstOrDefaultAsync(
-            x => x.Id == recipeId,
-            cancellationToken);
+    .Include(x => x.Items)
+        .ThenInclude(x => x.Unit)
+    .Include(x => x.Items)
+        .ThenInclude(x => x.Product)
+            .ThenInclude(x => x.Unit)
+    .FirstOrDefaultAsync(
+        x => x.Id == recipeId,
+        cancellationToken);
 
         if (recipe is null)
             return false;
@@ -478,12 +493,29 @@ public sealed class RecipeCommandService : IRecipeCommandService
 
             foreach (var item in recipe.Items)
             {
-                item.UnitCost =
-                    item.Product.UnitCost;
+                if (item.Unit.MeasurementType != item.Product.Unit.MeasurementType)
+                {
+                    throw new InvalidOperationException("La unidad del ingrediente no es compatible con la unidad del producto.");
+                }
+
+                if (item.Product.Unit.ConversionFactor <= 0 || item.Unit.ConversionFactor <= 0)
+                {
+                    throw new InvalidOperationException("La configuración de conversión de unidades no es válida.");
+                }
+
+                var convertedUnitCost =
+                    Math.Round(
+                        item.Product.UnitCost *
+                        item.Unit.ConversionFactor /
+                        item.Product.Unit.ConversionFactor,
+                        6,
+                        MidpointRounding.AwayFromZero);
+
+                item.UnitCost = convertedUnitCost;
 
                 item.TotalCost =
                     Math.Round(
-                        item.Quantity * item.UnitCost,
+                        item.Quantity * convertedUnitCost,
                         6,
                         MidpointRounding.AwayFromZero);
             }
