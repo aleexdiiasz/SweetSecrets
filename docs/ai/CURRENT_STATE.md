@@ -10,30 +10,42 @@ SweetSecrets
 
 ## Fase actual
 
-Infraestructura multi-tenant, autenticación, provisioning automático, resolución segura de tenant y autoregistro funcional.
+Módulo operacional de productos implementado y validado.
 
-El núcleo backend necesario para comenzar los módulos operativos de cada tenant ya está disponible.
-
-Actualmente se está trabajando en:
+El núcleo backend multi-tenant ya permite:
 
 ```text
-TEN-006 - Self Registration
+autenticación
+↓
+resolución segura del tenant
+↓
+TenantDbContext dinámico
+↓
+CRUD operacional sobre la base exclusiva del tenant
 ```
 
-La funcionalidad ya fue implementada y validada funcionalmente.
-
-Pendiente inmediato:
-
-```text
-Documentación final
-Git checkpoint
-Pull Request a develop
-```
-
-Después de cerrar TEN-006, el siguiente módulo previsto es:
+Actualmente se está cerrando:
 
 ```text
 TEN-007 - Products
+```
+
+Estado:
+
+```text
+Implementado
+Build OK
+Pruebas funcionales OK
+Documentación técnica creada
+Pendiente Git / Pull Request
+```
+
+TEN-006 ya fue integrado a `develop`.
+
+El siguiente módulo previsto, después de cerrar TEN-007, es:
+
+```text
+TEN-008 - Recipes
 ```
 
 ---
@@ -1195,6 +1207,8 @@ Total inicial:
 
 # Productos
 
+Módulo operacional implementado.
+
 Entidad:
 
 ```text
@@ -1216,6 +1230,236 @@ CreatedBy
 UpdatedAt
 UpdatedBy
 ```
+
+Navegación:
+
+```text
+Product.Unit
+```
+
+Relación:
+
+```text
+Product.UnitId
+→
+Unit.Id
+```
+
+La relación se configura explícitamente en `TenantDbContext` con:
+
+```text
+DeleteBehavior.Restrict
+```
+
+Esto evita eliminar una unidad que esté siendo utilizada por productos.
+
+## Servicios
+
+Consultas:
+
+```text
+IProductQueryService
+ProductQueryService
+```
+
+Comandos:
+
+```text
+IProductCommandService
+ProductCommandService
+```
+
+Todos utilizan:
+
+```text
+ITenantDbContextFactory
+```
+
+por lo que las operaciones se ejecutan exclusivamente contra la base del tenant autenticado.
+
+## Endpoints
+
+```text
+GET   /api/products
+GET   /api/products/{id}
+POST  /api/products
+PUT   /api/products/{id}
+PATCH /api/products/{id}/active
+```
+
+Todos requieren autenticación.
+
+## Listado
+
+`GET /api/products` devuelve:
+
+```text
+Id
+Name
+PurchaseQuantity
+UnitId
+UnitCode
+UnitName
+UnitSymbol
+PurchasePrice
+UnitCost
+IsActive
+```
+
+Los productos se ordenan por nombre.
+
+Las consultas de lectura utilizan:
+
+```text
+AsNoTracking
+```
+
+## Detalle
+
+`GET /api/products/{id}` devuelve además:
+
+```text
+CreatedAt
+CreatedBy
+UpdatedAt
+UpdatedBy
+```
+
+Si el producto no existe dentro de la base del tenant autenticado:
+
+```text
+404 Not Found
+```
+
+Conocer el Guid de un producto perteneciente a otro tenant no permite acceder a él porque la consulta se ejecuta contra una base PostgreSQL diferente.
+
+## Crear producto
+
+Endpoint:
+
+```text
+POST /api/products
+```
+
+Datos:
+
+```text
+Name
+PurchaseQuantity
+UnitId
+PurchasePrice
+```
+
+Validaciones:
+
+```text
+Name obligatorio
+Name <= 200 caracteres
+PurchaseQuantity > 0
+UnitId válido
+Unidad activa
+PurchasePrice >= 0
+Nombre no duplicado dentro del tenant
+```
+
+Se permite:
+
+```text
+PurchasePrice = 0
+```
+
+porque el catálogo legacy contiene productos sin precio y una usuaria puede registrar un producto antes de conocer su costo definitivo.
+
+Al crear:
+
+```text
+CreatedAt = UTC
+CreatedBy = usuario autenticado
+```
+
+## Editar producto
+
+Endpoint:
+
+```text
+PUT /api/products/{id}
+```
+
+Permite modificar:
+
+```text
+Name
+PurchaseQuantity
+UnitId
+PurchasePrice
+```
+
+Al actualizar:
+
+```text
+UpdatedAt = UTC
+UpdatedBy = usuario autenticado
+```
+
+## Costo unitario
+
+Se calcula:
+
+```text
+UnitCost = PurchasePrice / PurchaseQuantity
+```
+
+con precisión de hasta:
+
+```text
+6 decimales
+```
+
+y:
+
+```text
+MidpointRounding.AwayFromZero
+```
+
+## Soft delete
+
+No se elimina físicamente el producto.
+
+Endpoint:
+
+```text
+PATCH /api/products/{id}/active
+```
+
+Desactivar:
+
+```json
+{
+  "isActive": false
+}
+```
+
+Reactivar:
+
+```json
+{
+  "isActive": true
+}
+```
+
+Al cambiar estado se actualizan:
+
+```text
+UpdatedAt
+UpdatedBy
+```
+
+Se conserva el registro para mantener:
+
+- historial;
+- trazabilidad;
+- referencias con recetas;
+- posibilidad de reactivación.
 
 ---
 
@@ -1428,7 +1672,37 @@ ChangedBy
 ChangedAt
 ```
 
-La lógica automática todavía no está implementada.
+La lógica automática ya está implementada dentro de:
+
+```text
+ProductCommandService.UpdateAsync
+```
+
+Se crea un registro cuando cambia:
+
+```text
+PurchasePrice
+```
+
+o cuando cambia:
+
+```text
+UnitCost
+```
+
+aunque el precio total permanezca igual.
+
+Si solo cambia el nombre y precio/costo permanecen iguales, no se genera un registro.
+
+La prueba de TEN-007 confirmó físicamente en PostgreSQL:
+
+```text
+PreviousPrice    = 150
+NewPrice         = 180
+PreviousUnitCost = 0.150000
+NewUnitCost      = 0.180000
+ChangedBy        = usuario autenticado
+```
 
 ---
 
@@ -2142,6 +2416,78 @@ Status = Active
 
 ---
 
+# Estado de pruebas de TEN-007
+
+Tenant utilizado:
+
+```text
+000004
+```
+
+Base:
+
+```text
+sweetsecrets_tenant_000004
+```
+
+Validado:
+
+```text
+GET /api/products → 200
+GET /api/products/{id} → 200
+POST /api/products → 200
+PUT /api/products/{id} → 200
+PATCH inactive → 204
+GET inactive → 200 / IsActive false
+PATCH active → 204
+GET active → 200 / IsActive true
+```
+
+Producto utilizado:
+
+```text
+PRODUCTO PRUEBA TEN-007
+```
+
+Id:
+
+```text
+986bb7f3-c735-4517-b752-b25f1b56e6cc
+```
+
+Creación:
+
+```text
+PurchaseQuantity = 1000
+Unit = GR
+PurchasePrice = 150
+UnitCost = 0.150000
+```
+
+Actualización:
+
+```text
+PurchasePrice = 180
+UnitCost = 0.180000
+```
+
+Historial comprobado directamente en PostgreSQL:
+
+```text
+PreviousPrice    = 150
+NewPrice         = 180
+PreviousUnitCost = 0.150000
+NewUnitCost      = 0.180000
+ChangedBy        = usuario autenticado
+```
+
+Soft delete y reactivación fueron validados correctamente.
+
+El módulo usa `ITenantDbContextFactory` y no recibe `TenantId`, `DatabaseName` ni `ConnectionString` desde el frontend.
+
+---
+
+
 # Swagger
 
 Swagger está habilitado únicamente como herramienta de desarrollo.
@@ -2245,10 +2591,41 @@ Merged → develop
 
 # TEN-006 Git
 
-Rama actual:
+Rama:
 
 ```text
 feature/TEN-006-self-registration
+```
+
+Commit:
+
+```text
+e54eed4 feat: add tenant self registration
+```
+
+Pull Request:
+
+```text
+#3
+TEN-006 - Tenant self registration
+```
+
+Estado:
+
+```text
+Merged → develop
+```
+
+El `develop` local fue sincronizado después del merge.
+
+---
+
+# TEN-007 Git
+
+Rama actual:
+
+```text
+feature/TEN-007-products
 ```
 
 Estado funcional:
@@ -2256,23 +2633,25 @@ Estado funcional:
 ```text
 Implementado
 Build OK
-Prueba funcional OK
-Documentación técnica creada
+Pruebas funcionales OK
+PRODUCTS.md creado
+CURRENT_STATE.md actualizado
 ```
 
-Antes de cerrar la rama se debe:
+Pendiente:
 
 ```text
-actualizar docs/ai/CURRENT_STATE.md
-git add
+git add .
+git status
 commit
 push
 Pull Request → develop
 ```
 
-No asumir que TEN-006 está en `develop` hasta completar ese flujo.
+No asumir que TEN-007 está en `develop` hasta completar el Pull Request.
 
 ---
+
 
 # Documentación técnica existente
 
@@ -2288,6 +2667,7 @@ docs/security/AUTHENTICATION.md
 docs/technical/TENANT_PROVISIONING.md
 docs/technical/TENANT_RESOLUTION.md
 docs/technical/TENANT_SELF_REGISTRATION.md
+docs/technical/PRODUCTS.md
 docs/ai/CURRENT_STATE.md
 ```
 
@@ -2373,24 +2753,12 @@ para seleccionar base tenant.
 
 # Módulos operativos todavía no implementados
 
-## Productos
-
-Pendiente:
-
-- listar;
-- consultar detalle;
-- crear;
-- editar;
-- desactivar/eliminar;
-- historial de precios;
-- validaciones;
-- auditoría.
-
 ## Recetas
 
 Pendiente:
 
 - listar;
+- consultar detalle;
 - crear;
 - editar;
 - agregar ingredientes;
@@ -2420,6 +2788,10 @@ recalcular SuggestedPrice
 guardar RecipeCostHistory
 ```
 
+El cambio de precio y `UnitCost` del producto ya se registra.
+
+Lo pendiente es propagar dicho cambio hacia las recetas afectadas.
+
 ## Configuración
 
 Pendiente CRUD de:
@@ -2445,8 +2817,6 @@ Pendiente:
 - confirmación de correo;
 - recuperación de contraseña;
 - cambio de contraseña desde UI;
-- CRUD Productos;
-- historial automático de cambios de precio;
 - CRUD Recetas;
 - recálculo automático de recetas;
 - CRUD configuración;
@@ -2584,62 +2954,60 @@ Cada nueva cuenta obtiene:
 
 # Próximo objetivo
 
-Después de cerrar TEN-006:
+Después de cerrar Git de TEN-007:
 
 ```text
-TEN-007 - Products
+TEN-008 - Recipes
 ```
 
 Objetivo:
 
-Implementar el primer módulo operacional real sobre:
+Implementar el módulo relacional de recetas sobre:
 
 ```text
-TenantDbContext
+Recipe
+RecipeItem
+Product
+Unit
 ```
 
-usando obligatoriamente:
+utilizando obligatoriamente:
 
 ```text
 ITenantDbContextFactory
 ```
 
+El módulo deberá calcular correctamente costos y precio sugerido y preparar la propagación de cambios de precio de productos hacia las recetas.
+
 ---
 
 # TEN-007 previsto
 
-Orden recomendado:
+TEN-007 quedó implementado funcionalmente.
+
+Componentes completados:
 
 ```text
-TEN-007A
-Contratos de productos
-
-TEN-007B
-Servicio query listado
-
-TEN-007C
-GET /api/products
-
-TEN-007D
-GET /api/products/{id}
-
-TEN-007E
-Crear producto
-
-TEN-007F
-Editar producto
-
-TEN-007G
-Cambio de precio + historial
-
-TEN-007H
-Desactivar/eliminar según reglas
-
-TEN-007I
-Documentación + pruebas + Git
+TEN-007A - Contratos de productos
+TEN-007B - Servicios query
+TEN-007C - GET /api/products
+TEN-007D - GET /api/products/{id}
+TEN-007E - Crear producto
+TEN-007F - Editar producto
+TEN-007G - Cambio de precio + historial
+TEN-007H - Soft delete / reactivación
+TEN-007I - Documentación + pruebas
 ```
 
-No implementar recetas antes de estabilizar productos.
+Pendiente:
+
+```text
+Git commit
+push
+Pull Request → develop
+```
+
+No iniciar recetas antes de cerrar TEN-007 en Git.
 
 ---
 
@@ -2802,15 +3170,23 @@ Actualmente SweetSecrets ya tiene:
 ✅ TENANT_OWNER
 ✅ Autoregistro público
 ✅ Validación real de aislamiento
+✅ Listado de productos
+✅ Detalle de producto
+✅ Crear producto
+✅ Editar producto
+✅ Cálculo UnitCost
+✅ CreatedBy / UpdatedBy
+✅ Historial automático de precio y UnitCost
+✅ Soft delete de producto
+✅ Reactivación de producto
 ```
 
 Pendiente principal:
 
 ```text
-⏳ Cerrar Git de TEN-006
-⏳ TEN-007 Products
-⏳ Recipes
-⏳ Recalculation
+⏳ Cerrar Git de TEN-007
+⏳ TEN-008 Recipes
+⏳ Recálculo de recetas
 ⏳ Configuration CRUD
 ⏳ Notifications
 ⏳ Blazor UI
@@ -2824,21 +3200,22 @@ Pendiente principal:
 Rama:
 
 ```text
-feature/TEN-006-self-registration
+feature/TEN-007-products
 ```
 
-TEN-006 ya:
+TEN-007 ya:
 
 ```text
 compila
 funciona
 fue probado
+PRODUCTS.md fue creado
+CURRENT_STATE.md fue actualizado
 ```
 
 Se debe terminar:
 
 ```text
-actualizar CURRENT_STATE.md
 git add .
 git status
 commit
@@ -2846,14 +3223,24 @@ push
 PR a develop
 ```
 
-Después:
+Después del merge:
 
 ```text
 checkout develop
 pull origin develop
-crear feature/TEN-007-products
+crear feature/TEN-008-recipes
 ```
 
-No volver a implementar provisioning, seed, tenant resolution o autoregistro.
+No volver a implementar:
+
+```text
+provisioning
+seed
+tenant resolution
+autoregistro
+CRUD básico de productos
+historial de precio de productos
+soft delete de productos
+```
 
 Esos bloques ya existen y fueron validados.
