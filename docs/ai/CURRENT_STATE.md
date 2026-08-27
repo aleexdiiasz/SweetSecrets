@@ -10,14 +10,14 @@ SweetSecrets
 
 ## Fase actual
 
-Módulo operacional de recetas implementado y validado.
+Recálculo automático de recetas implementado y validado.
 
-El núcleo backend multi-tenant ya permite operar productos y recetas exclusivamente sobre la base PostgreSQL del tenant autenticado.
+El backend multi-tenant ya propaga cambios de costo unitario de productos hacia las recetas activas que los utilizan, conservando trazabilidad y aislamiento por tenant.
 
 Actualmente se está cerrando:
 
 ```text
-TEN-008 - Recipes
+TEN-009 - Automatic Recipe Recalculation
 ```
 
 Estado:
@@ -26,24 +26,18 @@ Estado:
 Implementado
 Build OK
 Pruebas funcionales OK
-Documentación técnica RECIPES.md creada
+Documentación técnica RECIPE_RECALCULATION.md creada
 Pendiente Git / Pull Request
 ```
 
-TEN-007 ya fue integrado a `develop` mediante el Pull Request #4.
+TEN-008 fue integrado a `develop` mediante el Pull Request #5.
 
-El siguiente bloque previsto, después de cerrar TEN-008, es:
-
-```text
-TEN-009 - Automatic Recipe Recalculation
-```
-
-Objetivo principal:
+TEN-009 cubre:
 
 ```text
-cambio de Product.UnitCost
+Product.UnitCost cambia
 ↓
-buscar RecipeItems afectados
+buscar recetas activas afectadas
 ↓
 actualizar RecipeItem.UnitCost
 ↓
@@ -53,8 +47,10 @@ recalcular Recipe.TotalCost
 ↓
 recalcular Recipe.SuggestedPrice
 ↓
-guardar RecipeCostHistory
+crear RecipeCostHistory
 ```
+
+También protege cambios de unidad en productos ya utilizados y sincroniza costos al reactivar recetas inactivas.
 
 ---
 
@@ -1861,7 +1857,13 @@ Reason
 CreatedAt
 ```
 
-La lógica automática está implementada para cambios de ingredientes.
+La lógica automática está implementada para:
+
+```text
+cambios de ingredientes
+cambios de Product.UnitCost
+sincronización al reactivar recetas
+```
 
 Eventos actuales:
 
@@ -1869,6 +1871,8 @@ Eventos actuales:
 RECIPE_ITEM_ADDED
 RECIPE_ITEM_UPDATED
 RECIPE_ITEM_REMOVED
+PRODUCT_UNIT_COST_CHANGED
+RECIPE_REACTIVATED_COST_SYNC
 ```
 
 Solo se crea historial cuando:
@@ -1881,22 +1885,23 @@ Movimientos validados:
 
 ```text
 0  → 54  RECIPE_ITEM_ADDED
-54 → 63  RECIPE_ITEM_UPDATED
-63 → 0   RECIPE_ITEM_REMOVED
+54 → 60  PRODUCT_UNIT_COST_CHANGED
+60 → 75  PRODUCT_UNIT_COST_CHANGED
+75 → 90  RECIPE_REACTIVATED_COST_SYNC
 ```
 
-Los registros fueron comprobados directamente en PostgreSQL y mediante:
+Los movimientos fueron comprobados mediante la API y, para los escenarios previos, directamente en PostgreSQL.
+
+Endpoint:
 
 ```text
 GET /api/recipes/{id}/cost-history
 ```
 
-La consulta ordena por `CreatedAt DESC`.
-
-Pendiente:
+Orden:
 
 ```text
-historial provocado por cambios externos de Product.UnitCost
+CreatedAt DESC
 ```
 
 ---
@@ -2722,6 +2727,212 @@ El módulo usa `ITenantDbContextFactory` sin selección de `TenantId`, `Database
 
 ---
 
+# Estado de pruebas de TEN-009
+
+Tenant utilizado:
+
+```text
+000004
+```
+
+Base:
+
+```text
+sweetsecrets_tenant_000004
+```
+
+Producto utilizado:
+
+```text
+PRODUCTO PRUEBA TEN-007
+```
+
+ProductId:
+
+```text
+986bb7f3-c735-4517-b752-b25f1b56e6cc
+```
+
+Receta utilizada:
+
+```text
+PASTEL CHOCOLATE PRUEBA TEN-008
+```
+
+RecipeId:
+
+```text
+46683e43-3c55-4d67-8ebd-9c9731d707f1
+```
+
+Ingrediente:
+
+```text
+Quantity = 300
+Unit = GR
+```
+
+## Cambio de precio
+
+Estado inicial:
+
+```text
+PurchaseQuantity = 1000
+PurchasePrice = 180
+UnitCost = 0.18
+Recipe.TotalCost = 54
+Recipe.SuggestedPrice = 216
+```
+
+Cambio:
+
+```text
+PurchasePrice = 200
+UnitCost = 0.20
+```
+
+Resultado:
+
+```text
+RecipeItem.UnitCost = 0.20
+RecipeItem.TotalCost = 60
+Recipe.TotalCost = 60
+Recipe.SuggestedPrice = 240
+```
+
+Historial:
+
+```text
+54 → 60
+PRODUCT_UNIT_COST_CHANGED
+```
+
+## Cambio de cantidad de compra
+
+Cambio:
+
+```text
+PurchasePrice = 200
+PurchaseQuantity = 800
+UnitCost = 0.25
+```
+
+Resultado:
+
+```text
+RecipeItem.UnitCost = 0.25
+RecipeItem.TotalCost = 75
+Recipe.TotalCost = 75
+Recipe.SuggestedPrice = 300
+```
+
+Historial:
+
+```text
+60 → 75
+PRODUCT_UNIT_COST_CHANGED
+```
+
+Esto confirmó que el recálculo depende del cambio real de:
+
+```text
+Product.UnitCost
+```
+
+y no únicamente de `PurchasePrice`.
+
+## Protección de cambio de unidad
+
+Se intentó cambiar el producto usado por la receta de:
+
+```text
+GR → KG
+```
+
+Resultado:
+
+```text
+409 Conflict
+```
+
+Mensaje:
+
+```text
+No se puede cambiar la unidad de un producto que ya está siendo utilizado en recetas.
+```
+
+Después del rechazo se validó que el producto conservó:
+
+```text
+Unit = GR
+PurchaseQuantity = 800
+PurchasePrice = 200
+UnitCost = 0.25
+UpdatedAt sin cambio
+```
+
+## Receta inactiva
+
+La receta fue desactivada:
+
+```text
+IsActive = false
+```
+
+Después se actualizó el producto a:
+
+```text
+PurchaseQuantity = 800
+PurchasePrice = 240
+UnitCost = 0.30
+```
+
+La receta inactiva conservó:
+
+```text
+RecipeItem.UnitCost = 0.25
+RecipeItem.TotalCost = 75
+Recipe.TotalCost = 75
+Recipe.SuggestedPrice = 300
+```
+
+Esto confirmó que recetas inactivas no se recalculan automáticamente.
+
+## Reactivación
+
+Al reactivar:
+
+```text
+IsActive = true
+```
+
+se sincronizó con el costo actual:
+
+```text
+Product.UnitCost = 0.30
+RecipeItem.UnitCost = 0.30
+RecipeItem.TotalCost = 90
+Recipe.TotalCost = 90
+Recipe.SuggestedPrice = 360
+```
+
+Historial:
+
+```text
+75 → 90
+RECIPE_REACTIVATED_COST_SYNC
+```
+
+## Build
+
+Todos los bloques incrementales de TEN-009 finalizaron con:
+
+```text
+Build succeeded
+```
+
+---
+
 
 # Swagger
 
@@ -2889,10 +3100,48 @@ TEN-007 está cerrado.
 
 # TEN-008 Git
 
-Rama actual:
+Rama:
 
 ```text
 feature/TEN-008-recipes
+```
+
+Commit:
+
+```text
+5e44fed feat: add tenant recipes module
+```
+
+Pull Request:
+
+```text
+#5
+TEN-008 - Tenant recipes module
+```
+
+Estado:
+
+```text
+Merged → develop
+```
+
+Después del merge:
+
+```text
+develop sincronizado
+working tree clean
+```
+
+TEN-008 está cerrado.
+
+---
+
+# TEN-009 Git
+
+Rama actual:
+
+```text
+feature/TEN-009-recipe-recalculation
 ```
 
 Estado funcional:
@@ -2901,8 +3150,15 @@ Estado funcional:
 Implementado
 Build OK
 Pruebas funcionales OK
-RECIPES.md creado
+RECIPE_RECALCULATION.md creado
 CURRENT_STATE.md actualizado
+```
+
+Archivos funcionales principales:
+
+```text
+src/SweetSecrets.Infrastructure/Services/Products/ProductCommandService.cs
+src/SweetSecrets.Infrastructure/Services/Recipes/RecipeCommandService.cs
 ```
 
 Pendiente:
@@ -2915,7 +3171,7 @@ push
 Pull Request → develop
 ```
 
-No asumir que TEN-008 está en `develop` hasta completar el Pull Request.
+No asumir que TEN-009 está en `develop` hasta completar el Pull Request.
 
 ---
 
@@ -2936,6 +3192,7 @@ docs/technical/TENANT_RESOLUTION.md
 docs/technical/TENANT_SELF_REGISTRATION.md
 docs/technical/PRODUCTS.md
 docs/technical/RECIPES.md
+docs/technical/RECIPE_RECALCULATION.md
 docs/ai/CURRENT_STATE.md
 ```
 
@@ -3021,30 +3278,6 @@ para seleccionar base tenant.
 
 # Módulos operativos todavía no implementados
 
-## Recálculo automático por cambio de producto
-
-Pendiente:
-
-```text
-Cambio Product.PurchasePrice o PurchaseQuantity
-↓
-recalcular Product.UnitCost
-↓
-buscar RecipeItems que usan ProductId
-↓
-actualizar RecipeItem.UnitCost
-↓
-recalcular RecipeItem.TotalCost
-↓
-recalcular Recipe.TotalCost
-↓
-recalcular Recipe.SuggestedPrice
-↓
-guardar RecipeCostHistory
-```
-
-El CRUD de productos, el CRUD de recetas y el historial provocado por cambios internos de ingredientes ya existen.
-
 ## Conversiones de unidades
 
 Pendiente diseñar formalmente:
@@ -3055,6 +3288,8 @@ L ↔ ML
 ```
 
 Actualmente la unidad del ingrediente debe coincidir con la unidad base del producto.
+
+Por seguridad, un producto utilizado en recetas no puede cambiar de unidad hasta que exista una capa formal de conversión.
 
 ## Configuración
 
@@ -3081,7 +3316,6 @@ Pendiente:
 - confirmación de correo;
 - recuperación de contraseña;
 - cambio de contraseña desde UI;
-- recálculo automático de recetas por cambio de Product.UnitCost;
 - conversiones formales de unidades;
 - CRUD configuración;
 - administración completa de usuarios tenant;
@@ -3218,76 +3452,70 @@ Cada nueva cuenta obtiene:
 
 # Próximo objetivo
 
-Después de cerrar Git de TEN-008:
+Objetivo inmediato:
 
 ```text
-TEN-009 - Automatic Recipe Recalculation
+Cerrar Git de TEN-009
 ```
 
-Objetivo:
-
-Cuando cambie el precio o cantidad de compra de un producto y cambie:
+Secuencia:
 
 ```text
-Product.UnitCost
+git add
+↓
+commit
+↓
+push
+↓
+Pull Request
+↓
+merge → develop
+↓
+sincronizar develop local
 ```
 
-el backend deberá localizar las recetas afectadas y propagar el nuevo costo.
+Después del merge de TEN-009 se debe definir el siguiente bloque funcional.
 
-Flujo objetivo:
+Pendientes prioritarios actualmente:
 
 ```text
-Product actualizado
-↓
-UnitCost anterior / nuevo
-↓
-buscar RecipeItems por ProductId
-↓
-actualizar RecipeItem.UnitCost
-↓
-recalcular RecipeItem.TotalCost
-↓
-agrupar recetas afectadas
-↓
-recalcular Recipe.TotalCost
-↓
-recalcular Recipe.SuggestedPrice
-↓
-crear RecipeCostHistory
+conversiones formales de unidades
+CRUD de configuración tenant
+administración de TENANT_USER
+frontend Blazor WebAssembly PWA
 ```
 
-Debe mantenerse el aislamiento database-per-tenant mediante `ITenantDbContextFactory`.
+No se debe asignar un número de issue al siguiente bloque hasta definir formalmente su alcance.
 
 ---
 
-# TEN-007 previsto
+# TEN-009 implementado
 
-TEN-007 Products está cerrado y fue integrado a `develop`.
+TEN-007 Products está cerrado.
 
-TEN-008 Recipes quedó implementado funcionalmente.
+TEN-008 Recipes está cerrado mediante PR #5.
+
+TEN-009 Automatic Recipe Recalculation quedó implementado funcionalmente.
 
 Componentes completados:
 
 ```text
-listado de recetas
-detalle de receta
-creación
-edición
-multiplicador
-precio sugerido
-agregar ingredientes
-editar cantidad de ingredientes
-eliminar ingredientes
-detalle con ingredientes
-historial automático de costos
-consulta del historial por API
-soft delete
-reactivación
-auditoría
-aislamiento tenant
+detección de cambio real de Product.UnitCost
+búsqueda de recetas activas afectadas
+actualización de RecipeItem.UnitCost
+actualización de RecipeItem.TotalCost
+recálculo de Recipe.TotalCost
+recálculo de Recipe.SuggestedPrice
+RecipeCostHistory con PRODUCT_UNIT_COST_CHANGED
+preservación de recetas inactivas
+sincronización de costo al reactivar
+RecipeCostHistory con RECIPE_REACTIVATED_COST_SYNC
+bloqueo de cambio de unidad en productos usados por recetas
+auditoría UpdatedAt / UpdatedBy
+aislamiento database-per-tenant
 ```
 
-Estado pendiente de TEN-008:
+Estado pendiente de TEN-009:
 
 ```text
 Git commit
@@ -3295,7 +3523,7 @@ push
 Pull Request → develop
 ```
 
-No iniciar TEN-009 antes de cerrar TEN-008 en Git.
+No iniciar otro módulo antes de cerrar TEN-009 en Git.
 
 ---
 
@@ -3473,15 +3701,23 @@ Actualmente SweetSecrets ya tiene:
 ✅ Consulta de historial por API
 ✅ Soft delete de recetas
 ✅ Reactivación de recetas
+✅ Propagación Product.UnitCost → RecipeItem
+✅ Recálculo automático Recipe.TotalCost
+✅ Recálculo automático SuggestedPrice
+✅ Historial PRODUCT_UNIT_COST_CHANGED
+✅ Recetas inactivas preservadas ante cambios de producto
+✅ Sincronización de costos al reactivar
+✅ Historial RECIPE_REACTIVATED_COST_SYNC
+✅ Protección de cambio de unidad en productos usados
 ```
 
 Pendiente principal:
 
 ```text
-⏳ Cerrar Git de TEN-008
-⏳ TEN-009 Automatic Recipe Recalculation
+⏳ Cerrar Git de TEN-009
 ⏳ Conversiones de unidades
 ⏳ Configuration CRUD
+⏳ Administración TENANT_USER
 ⏳ Notifications
 ⏳ Blazor UI
 ⏳ Production deployment
@@ -3494,17 +3730,24 @@ Pendiente principal:
 Rama:
 
 ```text
-feature/TEN-008-recipes
+feature/TEN-009-recipe-recalculation
 ```
 
-TEN-008 ya:
+TEN-009 ya:
 
 ```text
 compila
 funciona
 fue probado
-RECIPES.md fue creado
+RECIPE_RECALCULATION.md fue creado
 CURRENT_STATE.md fue actualizado
+```
+
+Cambios funcionales:
+
+```text
+ProductCommandService.cs
+RecipeCommandService.cs
 ```
 
 Se debe terminar:
@@ -3522,7 +3765,7 @@ Después del merge:
 ```text
 git checkout develop
 git pull origin develop
-git checkout -b feature/TEN-009-recipe-recalculation
+git status
 ```
 
 No volver a implementar:
@@ -3534,16 +3777,14 @@ tenant resolution
 autoregistro
 CRUD de productos
 historial de precio de productos
-CRUD básico de recetas
+CRUD de recetas
 gestión de RecipeItems
 historial de costos por cambios de ingredientes
 soft delete de recetas
+recálculo automático por Product.UnitCost
+sincronización al reactivar recetas
 ```
 
 Esos bloques ya existen y fueron validados.
 
-El siguiente trabajo debe concentrarse en:
-
-```text
-propagar cambios de Product.UnitCost hacia recetas afectadas
-```
+Después de cerrar TEN-009 debe definirse formalmente el siguiente issue antes de crear una nueva rama.

@@ -158,11 +158,11 @@ public sealed class ProductCommandService : IProductCommandService
                 "Ya existe otro producto con ese nombre.");
         }
 
-        var previousPrice =
-    product.PurchasePrice;
+        var previousPrice = product.PurchasePrice;
 
-        var previousUnitCost =
-            product.UnitCost;
+        var previousUnitCost = product.UnitCost;
+
+        var previousUnitId = product.UnitId;
 
         var unitCost =
             Math.Round(
@@ -171,33 +171,45 @@ public sealed class ProductCommandService : IProductCommandService
                 6,
                 MidpointRounding.AwayFromZero);
 
-        var priceChanged =
-    previousPrice != command.PurchasePrice ||
-    previousUnitCost != unitCost;
+        var unitChanged = previousUnitId != command.UnitId;
 
-        var updatedAt =
-            DateTime.UtcNow;
+        if (unitChanged)
+        {
+            var productIsUsedInRecipes =
+                await dbContext.RecipeItems
+                    .AsNoTracking()
+                    .AnyAsync(
+                        x => x.ProductId == product.Id,
+                        cancellationToken);
 
-        product.Name =
-            normalizedName;
+            if (productIsUsedInRecipes)
+            {
+                throw new InvalidOperationException(
+                    "No se puede cambiar la unidad de un producto que ya está siendo utilizado en recetas.");
+            }
+        }
 
-        product.PurchaseQuantity =
-            command.PurchaseQuantity;
 
-        product.UnitId =
-            command.UnitId;
 
-        product.PurchasePrice =
-            command.PurchasePrice;
+        var priceChanged = previousPrice != command.PurchasePrice || previousUnitCost != unitCost;
 
-        product.UnitCost =
-            unitCost;
+        var unitCostChanged = previousUnitCost != unitCost;
 
-        product.UpdatedAt =
-            updatedAt;
+        var updatedAt = DateTime.UtcNow;
 
-        product.UpdatedBy =
-            userId;
+        product.Name = normalizedName;
+
+        product.PurchaseQuantity = command.PurchaseQuantity;
+
+        product.UnitId = command.UnitId;
+
+        product.PurchasePrice = command.PurchasePrice;
+
+        product.UnitCost = unitCost;
+
+        product.UpdatedAt = updatedAt;
+
+        product.UpdatedBy = userId;
 
         if (priceChanged)
         {
@@ -224,6 +236,69 @@ public sealed class ProductCommandService : IProductCommandService
             await dbContext.ProductPriceHistory.AddAsync(
                 history,
                 cancellationToken);
+        }
+
+        if (unitCostChanged)
+        {
+            var affectedRecipes =
+                await dbContext.Recipes
+                    .Include(x => x.Items)
+                    .Where(x =>
+                        x.IsActive &&
+                        x.Items.Any(item =>
+                            item.ProductId == product.Id))
+                    .ToListAsync(cancellationToken);
+
+            foreach (var recipe in affectedRecipes)
+            {
+                var previousRecipeCost = recipe.TotalCost;
+
+                foreach (var item in recipe.Items
+                             .Where(x => x.ProductId == product.Id))
+                {
+                    item.UnitCost = unitCost;
+
+                    item.TotalCost =
+                        Math.Round(
+                            item.Quantity * unitCost,
+                            6,
+                            MidpointRounding.AwayFromZero);
+                }
+
+                recipe.TotalCost =
+                    Math.Round(
+                        recipe.Items.Sum(x => x.TotalCost),
+                        6,
+                        MidpointRounding.AwayFromZero);
+
+                recipe.SuggestedPrice =
+                    Math.Round(
+                        recipe.TotalCost * recipe.Multiplier,
+                        2,
+                        MidpointRounding.AwayFromZero);
+
+                recipe.UpdatedAt = updatedAt;
+
+                recipe.UpdatedBy = userId;
+
+                if (previousRecipeCost != recipe.TotalCost)
+                {
+                    var recipeHistory =
+                        new RecipeCostHistory
+                        {
+                            Id = Guid.NewGuid(),
+                            RecipeId = recipe.Id,
+                            PreviousCost = previousRecipeCost,
+                            NewCost = recipe.TotalCost,
+                            Reason = "PRODUCT_UNIT_COST_CHANGED",
+                            CreatedAt = updatedAt
+                        };
+
+                    await dbContext.RecipeCostHistory.AddAsync(
+                        recipeHistory,
+                        cancellationToken);
+                }
+            }
         }
 
         await dbContext.SaveChangesAsync(

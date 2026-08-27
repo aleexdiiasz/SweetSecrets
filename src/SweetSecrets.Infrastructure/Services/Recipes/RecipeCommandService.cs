@@ -459,15 +459,65 @@ public sealed class RecipeCommandService : IRecipeCommandService
             await _dbContextFactory.CreateAsync(cancellationToken);
 
         var recipe = await dbContext.Recipes
+            .Include(x => x.Items)
+            .ThenInclude(x => x.Product)
             .FirstOrDefaultAsync(
-                x => x.Id == recipeId,
-                cancellationToken);
+            x => x.Id == recipeId,
+            cancellationToken);
 
         if (recipe is null)
             return false;
 
         if (recipe.IsActive == isActive)
             return true;
+
+        if (isActive)
+        {
+            var previousRecipeCost =
+                recipe.TotalCost;
+
+            foreach (var item in recipe.Items)
+            {
+                item.UnitCost =
+                    item.Product.UnitCost;
+
+                item.TotalCost =
+                    Math.Round(
+                        item.Quantity * item.UnitCost,
+                        6,
+                        MidpointRounding.AwayFromZero);
+            }
+
+            recipe.TotalCost =
+                Math.Round(
+                    recipe.Items.Sum(x => x.TotalCost),
+                    6,
+                    MidpointRounding.AwayFromZero);
+
+            recipe.SuggestedPrice =
+                Math.Round(
+                    recipe.TotalCost * recipe.Multiplier,
+                    2,
+                    MidpointRounding.AwayFromZero);
+
+            if (previousRecipeCost != recipe.TotalCost)
+            {
+                var history =
+                    new RecipeCostHistory
+                    {
+                        Id = Guid.NewGuid(),
+                        RecipeId = recipe.Id,
+                        PreviousCost = previousRecipeCost,
+                        NewCost = recipe.TotalCost,
+                        Reason = "RECIPE_REACTIVATED_COST_SYNC",
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                await dbContext.RecipeCostHistory.AddAsync(
+                    history,
+                    cancellationToken);
+            }
+        }
 
         recipe.IsActive = isActive;
         recipe.UpdatedAt = DateTime.UtcNow;
