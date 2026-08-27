@@ -19,6 +19,8 @@ using SweetSecrets.Application.Common.Registration;
 using SweetSecrets.Infrastructure.Services.Registration;
 using SweetSecrets.Application.Common.Products;
 using SweetSecrets.Infrastructure.Services.Products;
+using SweetSecrets.Application.Common.Recipes;
+using SweetSecrets.Infrastructure.Services.Recipes;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -144,6 +146,10 @@ builder.Services.AddScoped<ISelfRegistrationService, SelfRegistrationService>();
 builder.Services.AddScoped<IProductQueryService, ProductQueryService>();
 
 builder.Services.AddScoped<IProductCommandService, ProductCommandService>();
+
+builder.Services.AddScoped<IRecipeQueryService, RecipeQueryService>();
+
+builder.Services.AddScoped<IRecipeCommandService, RecipeCommandService>();
 
 // Add services to the container.
 
