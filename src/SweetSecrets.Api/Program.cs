@@ -21,6 +21,8 @@ using SweetSecrets.Application.Common.Products;
 using SweetSecrets.Infrastructure.Services.Products;
 using SweetSecrets.Application.Common.Recipes;
 using SweetSecrets.Infrastructure.Services.Recipes;
+using SweetSecrets.Application.Common.Settings;
+using SweetSecrets.Infrastructure.Services.Settings;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -150,6 +152,10 @@ builder.Services.AddScoped<IProductCommandService, ProductCommandService>();
 builder.Services.AddScoped<IRecipeQueryService, RecipeQueryService>();
 
 builder.Services.AddScoped<IRecipeCommandService, RecipeCommandService>();
+
+builder.Services.AddScoped<ISettingQueryService, SettingQueryService>();
+
+builder.Services.AddScoped<ISettingCommandService, SettingCommandService>();
 
 // Add services to the container.
 
