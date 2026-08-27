@@ -4361,3 +4361,110 @@ cambio compatible de Product.UnitId
 Esos bloques ya existen y fueron validados.
 
 DespuÃ©s de cerrar TEN-010 se debe definir formalmente el siguiente issue antes de crear una nueva rama.
+
+---
+
+# TEN-011 - Tenant Settings
+
+## Estado
+
+Implementación funcional completada y probada en la rama:
+
+feature/TEN-011-tenant-settings
+
+## Implementado
+
+- ISettingQueryService y SettingQueryService.
+- ISettingCommandService y SettingCommandService.
+- Contratos públicos de Settings.
+- SettingsController.
+- Registro de servicios en DI.
+- GET /api/settings.
+- GET /api/settings/{key}.
+- PUT /api/settings/{key}.
+- Resolución exclusiva mediante ITenantDbContextFactory.
+- Normalización de Key con Trim y ToUpperInvariant.
+- Actualización de UpdatedAt en UTC.
+- PUT únicamente actualiza configuraciones existentes.
+- PUT no crea claves arbitrarias.
+
+## Autorización
+
+- TENANT_OWNER puede consultar y modificar settings.
+- TENANT_USER puede consultar settings.
+- TENANT_USER no puede modificar settings.
+- PLATFORM_ADMIN no utiliza el contexto operacional tenant normal.
+
+La prueba funcional directa de TENANT_USER queda pendiente hasta implementar el flujo de administración de usuarios tenant.
+
+## MULTIPLIER
+
+El seed existente mantiene:
+
+MULTIPLIER = 3
+
+La validación exige un decimal mayor que cero.
+
+Se utiliza CultureInfo.InvariantCulture con NumberStyles.AllowDecimalPoint.
+
+Validado:
+
+- 4.5 -> válido.
+- 4,5 -> 400 Bad Request.
+- 0 -> 400 Bad Request.
+
+Durante las pruebas se detectó que NumberStyles.Number interpretaba 4,5 como 45. El problema fue corregido antes del cierre de TEN-011.
+
+## Aislamiento tenant
+
+Se comprobó físicamente:
+
+- sweetsecrets_tenant_000003 mantuvo MULTIPLIER = 3.
+- sweetsecrets_tenant_000004 cambió temporalmente a MULTIPLIER = 4.5.
+- La modificación de tenant 000004 no afectó tenant 000003.
+- Al finalizar las pruebas, tenant 000004 fue restaurado a MULTIPLIER = 3.
+
+Esto confirma aislamiento database-per-tenant para settings.
+
+## Recipe.Multiplier
+
+TEN-011 no modifica la lógica de Recipes.
+
+Actualmente settings.MULTIPLIER y Recipe.Multiplier son datos diferenciados.
+Cada receta continúa recibiendo y almacenando su propio Recipe.Multiplier.
+
+Usar settings.MULTIPLIER como valor predeterminado para nuevas recetas requerirá una decisión funcional independiente.
+
+## Migraciones
+
+TEN-011 no requiere una nueva migración.
+La tabla settings ya existe desde TEN001_InitialTenant.
+
+## Pruebas funcionales
+
+- GET /api/settings -> 200.
+- GET /api/settings/multiplier -> 200.
+- PUT MULTIPLIER = 4.5 -> 200.
+- PUT MULTIPLIER = 0 -> 400.
+- Error de validación no altera el valor anterior.
+- GET NO_EXISTE -> 404.
+- PUT NO_EXISTE -> 404.
+- NO_EXISTE no fue creada.
+- 4,5 -> 400 después de corregir validación decimal.
+- 4.5 -> 200.
+- aislamiento 000003 / 000004 confirmado.
+- valor de prueba restaurado a 3.
+
+## Documentación
+
+Se creó docs/technical/SETTINGS.md.
+
+## Git anterior
+
+TEN-010 - Unit conversions fue integrado mediante PR #7 a develop.
+
+## Punto de continuidad
+
+TEN-011 está implementado, probado y documentado.
+Pendiente: build final, staging, commit, push y Pull Request a develop.
+No iniciar TEN-012 antes de cerrar TEN-011.
