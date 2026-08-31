@@ -1,7 +1,28 @@
 ﻿@page "/"
+@attribute [Authorize(Roles = "TENANT_OWNER")]
 
-<PageTitle>Home</PageTitle>
+@using SweetSecrets.Web.Services.Auth
 
-<h1>Hello, world!</h1>
+@inject AuthApiClient AuthApiClient
+@inject NavigationManager Navigation
 
-Welcome to your new app.
+<PageTitle>Inicio - SweetSecrets</PageTitle>
+
+<h1>SweetSecrets</h1>
+
+<p>Sesión de TENANT_OWNER activa correctamente.</p>
+
+<button @onclick="LogoutAsync">
+    Cerrar sesión
+</button>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        await AuthApiClient.LogoutAsync();
+
+        Navigation.NavigateTo(
+            "/login",
+            replace: true);
+    }
+}

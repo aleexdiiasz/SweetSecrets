@@ -4468,3 +4468,205 @@ TEN-010 - Unit conversions fue integrado mediante PR #7 a develop.
 TEN-011 est� implementado, probado y documentado.
 Pendiente: build final, staging, commit, push y Pull Request a develop.
 No iniciar TEN-012 antes de cerrar TEN-011.
+
+---
+
+# TEN-011 - Tenant Settings - Cierre Git
+
+TEN-011 fue integrado correctamente a develop.
+
+Rama: feature/TEN-011-tenant-settings
+
+Commit: 4b5b1ea feat: add tenant settings module
+
+Pull Request: #8 - TEN-011 - Tenant Settings
+
+Estado: Merged -> develop
+
+Después del merge: develop sincronizado y working tree clean.
+
+TEN-011 está cerrado.
+
+---
+
+# TEN-012 - Tenant User Management
+
+TEN-012 fue evaluado como siguiente bloque para permitir que TENANT_OWNER administre usuarios TENANT_USER.
+
+Estado: PAUSADO.
+
+Decision funcional actual:
+
+La primera version funcional continuara unicamente con TENANT_OWNER.
+
+No se implementara por ahora:
+
+- creacion de TENANT_USER
+- edicion de TENANT_USER
+- bloqueo de TENANT_USER
+- administracion de permisos tenant
+- UI de administracion de usuarios tenant
+
+El rol TENANT_USER puede permanecer definido en la plataforma, pero no forma parte del flujo funcional actual.
+
+No reanudar TEN-012 hasta que exista una decision funcional explicita.
+
+---
+
+# TEN-013 - Blazor PWA Foundation
+
+Rama actual:
+
+feature/TEN-013-blazor-pwa-foundation
+
+Objetivo:
+
+Construir la base funcional de SweetSecrets.Web como Blazor WebAssembly PWA y conectarla de forma segura con SweetSecrets.Api.
+
+La primera experiencia funcional esta enfocada exclusivamente en TENANT_OWNER.
+
+## Puertos de desarrollo
+
+API:
+- https://localhost:7010
+- http://localhost:5183
+
+Web:
+- https://localhost:7011
+- http://localhost:5078
+
+Se corrigio el conflicto anterior donde API y Web utilizaban el mismo puerto HTTPS.
+
+## Comunicacion Web -> API
+
+La API permite el origen de desarrollo:
+
+https://localhost:7011
+
+La politica CORS permite headers, methods y credentials.
+
+No se utiliza AllowAnyOrigin.
+
+SweetSecrets.Web utiliza HttpClient contra:
+
+https://localhost:7010/
+
+Se implemento CookieCredentialsHandler utilizando BrowserRequestCredentials.Include.
+
+Esto permite utilizar de forma segura la cookie HttpOnly SweetSecrets.Auth.
+
+## Authentication State
+
+Se implemento ApiAuthenticationStateProvider.
+
+Consulta:
+
+GET /api/auth/me
+
+El estado de autenticacion del frontend incluye:
+
+- NameIdentifier
+- Email
+- tenant_id
+- session_id
+- roles
+
+## AuthApiClient
+
+Se implemento AuthApiClient para:
+
+- POST /api/auth/login
+- POST /api/auth/logout
+- actualizar AuthenticationStateProvider
+- manejar errores basicos de autenticacion
+
+## Login
+
+Se creo:
+
+Pages/Login.razor
+
+Ruta:
+
+/login
+
+Incluye:
+
+- correo electronico
+- password
+- Recordarme
+- estado de envio
+- mensajes de error
+
+Tambien se creo AuthLayout para las pantallas de autenticacion.
+
+## Proteccion de rutas
+
+App.razor utiliza AuthorizeRouteView.
+
+Se creo:
+
+Components/Auth/RedirectToLogin.razor
+
+Un usuario sin sesion que intenta acceder a una ruta protegida es enviado automaticamente a /login.
+
+## TENANT_OWNER
+
+La ruta / se protegio temporalmente con:
+
+[Authorize(Roles = TENANT_OWNER)]
+
+Se valido acceso correcto con el TENANT_OWNER del tenant 000004.
+
+## Logout
+
+Se valido:
+
+TENANT_OWNER autenticado
+-> POST /api/auth/logout
+-> sesion finalizada
+-> navegacion a /login
+
+Despues del logout, intentar entrar nuevamente a / redirige a /login.
+
+## Pruebas funcionales
+
+Validado:
+
+- Web HTTPS inicia en puerto 7011
+- API HTTPS inicia en puerto 7010
+- /login carga correctamente
+- login TENANT_OWNER exitoso
+- cookie HttpOnly funciona
+- GET /api/auth/me resuelve la sesion
+- rol TENANT_OWNER disponible en Blazor
+- ruta / permite acceso autenticado
+- logout funciona
+- ruta / sin sesion redirige a /login
+
+## Build
+
+Resultado final:
+
+Build succeeded
+
+## Estado actual
+
+TEN-013 tiene validado el nucleo de autenticacion del frontend.
+
+Completado:
+
+- conexion Web -> API
+- CORS con credentials
+- CookieCredentialsHandler
+- AuthenticationStateProvider
+- login
+- autorizacion TENANT_OWNER
+- logout
+- redireccion a login
+- build
+- prueba funcional
+
+Todavia no se considera terminada la UI operacional.
+
+No implementar TENANT_USER durante esta fase.
