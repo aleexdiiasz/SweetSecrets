@@ -159,6 +159,20 @@ builder.Services.AddScoped<ISettingCommandService, SettingCommandService>();
 
 // Add services to the container.
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        "SweetSecretsWeb",
+        policy =>
+        {
+            policy
+                .WithOrigins("https://localhost:7011")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
+});
+
 builder.Services.AddControllers();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -187,6 +201,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("SweetSecretsWeb");
 
 app.UseAuthentication();
 

@@ -1,0 +1,117 @@
+﻿@page "/login"
+@layout AuthLayout
+
+@using SweetSecrets.Contracts.Auth
+@using SweetSecrets.Web.Services.Auth
+
+@inject AuthApiClient AuthApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar sesión - SweetSecrets</PageTitle>
+
+<div class="login-card">
+    <div class="login-header">
+        <h1>SweetSecrets</h1>
+        <p>Ingresa a tu cuenta</p>
+    </div>
+
+    <EditForm Model="_model" OnValidSubmit="HandleLoginAsync">
+        <div class="form-group">
+            <label for="email">Correo electrónico</label>
+
+            <InputText id="email"
+                       class="form-control"
+                       type="email"
+                       autocomplete="email"
+                       @bind-Value="_model.Email" />
+        </div>
+
+        <div class="form-group">
+            <label for="password">Contraseña</label>
+
+            <InputText id="password"
+                       class="form-control"
+                       type="password"
+                       autocomplete="current-password"
+                       @bind-Value="_model.Password" />
+        </div>
+
+        <label class="remember-me">
+            <InputCheckbox @bind-Value="_model.RememberMe" />
+            <span>Recordarme</span>
+        </label>
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="login-error" role="alert">
+                @_errorMessage
+            </div>
+        }
+
+        <button type="submit"
+                class="login-button"
+                disabled="@_isSubmitting">
+
+            @if (_isSubmitting)
+            {
+                <span>Ingresando...</span>
+            }
+            else
+            {
+                <span>Iniciar sesión</span>
+            }
+        </button>
+    </EditForm>
+</div>
+
+@code {
+    private readonly LoginRequest _model = new();
+
+    private bool _isSubmitting;
+
+    private string? _errorMessage;
+
+    private async Task HandleLoginAsync()
+    {
+        if (_isSubmitting)
+        {
+            return;
+        }
+
+        _errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_model.Email) ||
+            string.IsNullOrWhiteSpace(_model.Password))
+        {
+            _errorMessage =
+                "Correo electrónico y contraseña son obligatorios.";
+
+            return;
+        }
+
+        _isSubmitting = true;
+
+        try
+        {
+            var result =
+                await AuthApiClient.LoginAsync(_model);
+
+            if (!result.Succeeded)
+            {
+                _errorMessage =
+                    result.ErrorMessage
+                    ?? "No fue posible iniciar sesión.";
+
+                return;
+            }
+
+            Navigation.NavigateTo(
+                "/",
+                replace: true);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}
