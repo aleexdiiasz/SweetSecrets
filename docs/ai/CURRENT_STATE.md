@@ -4670,3 +4670,128 @@ Completado:
 Todavia no se considera terminada la UI operacional.
 
 No implementar TENANT_USER durante esta fase.
+
+---
+
+# TEN-014 - Tenant Owner Application Shell
+
+Rama actual:
+
+feature/TEN-014-tenant-owner-shell
+
+## Objetivo
+
+Reemplazar la interfaz del template de Blazor por el shell operacional inicial de SweetSecrets para TENANT_OWNER.
+
+## Implementado
+
+- MainLayout operacional
+- sidebar
+- header
+- logout global
+- navegacion principal
+- dashboard inicial
+- responsive
+- rutas placeholder protegidas
+
+## Navegacion
+
+Rutas disponibles:
+
+- /
+- /productos
+- /recetas
+- /configuracion
+
+Opciones visibles:
+
+- Inicio
+- Productos
+- Recetas
+- Configuracion
+
+La opcion activa cambia visualmente.
+
+## Dashboard TENANT_OWNER
+
+Home contiene tarjetas informativas para:
+
+- Productos
+- Recetas
+- Configuracion
+
+Todavia no consumen endpoints operacionales.
+
+## Logout
+
+Cerrar sesion fue movido desde Home hacia MainLayout.
+
+Se valido:
+
+TENANT_OWNER
+-> Cerrar sesion
+-> POST /api/auth/logout
+-> /login
+
+## Responsive
+
+Validado aproximadamente a 390 px:
+
+- sidebar pasa arriba
+- contenido queda debajo
+- dashboard pasa a una columna
+- logout permanece visible y funcional
+
+## Paginas placeholder
+
+Se crearon:
+
+- Pages/Products.razor
+- Pages/Recipes.razor
+- Pages/Settings.razor
+
+Las tres rutas estan protegidas para TENANT_OWNER.
+
+## Build y pruebas
+
+Resultado:
+
+Build succeeded
+
+Validado manualmente:
+
+- navegacion completa
+- estado activo del menu
+- dashboard
+- logout
+- responsive
+
+## Documentacion
+
+Se creo:
+
+docs/technical/FRONTEND_SHELL.md
+
+## Limites de TEN-014
+
+No implementa:
+
+- CRUD real de productos
+- CRUD real de recetas
+- configuracion funcional
+- TENANT_USER
+
+TENANT_USER permanece pausado.
+
+## Estado actual
+
+TEN-014 implementado, compilado, probado y documentado.
+
+Pendiente:
+
+- git status
+- git diff --check
+- git add
+- commit
+- push
+- Pull Request a develop
