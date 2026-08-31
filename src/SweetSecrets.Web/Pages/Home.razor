@@ -1,28 +1,76 @@
 ﻿@page "/"
 @attribute [Authorize(Roles = "TENANT_OWNER")]
 
-@using SweetSecrets.Web.Services.Auth
-
-@inject AuthApiClient AuthApiClient
-@inject NavigationManager Navigation
-
 <PageTitle>Inicio - SweetSecrets</PageTitle>
 
-<h1>SweetSecrets</h1>
+<section class="dashboard">
+    <div class="dashboard-heading">
+        <div>
+            <span class="dashboard-eyebrow">
+                Resumen
+            </span>
 
-<p>Sesión de TENANT_OWNER activa correctamente.</p>
+            <h1>Bienvenido a SweetSecrets</h1>
 
-<button @onclick="LogoutAsync">
-    Cerrar sesión
-</button>
+            <p>
+                Administra los costos de tus productos y recetas desde un solo lugar.
+            </p>
+        </div>
+    </div>
 
-@code {
-    private async Task LogoutAsync()
-    {
-        await AuthApiClient.LogoutAsync();
+    <div class="dashboard-cards">
+        <article class="dashboard-card">
+            <div class="dashboard-card-icon">
+                □
+            </div>
 
-        Navigation.NavigateTo(
-            "/login",
-            replace: true);
-    }
-}
+            <div>
+                <span class="dashboard-card-label">
+                    Productos
+                </span>
+
+                <strong>Catálogo de ingredientes</strong>
+
+                <p>
+                    Consulta y administra precios, cantidades y unidades de compra.
+                </p>
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <div class="dashboard-card-icon">
+                ≡
+            </div>
+
+            <div>
+                <span class="dashboard-card-label">
+                    Recetas
+                </span>
+
+                <strong>Costeo de recetas</strong>
+
+                <p>
+                    Construye recetas y calcula automáticamente su costo.
+                </p>
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <div class="dashboard-card-icon">
+                ⚙
+            </div>
+
+            <div>
+                <span class="dashboard-card-label">
+                    Configuración
+                </span>
+
+                <strong>Preferencias de cuenta</strong>
+
+                <p>
+                    Administra la configuración operativa de tu espacio.
+                </p>
+            </div>
+        </article>
+    </div>
+</section>
