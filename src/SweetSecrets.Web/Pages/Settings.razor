@@ -1,12 +1,237 @@
-﻿@page "/configuracion"
+@page "/configuracion"
 @attribute [Authorize(Roles = "TENANT_OWNER")]
+
+@using System.Globalization
+@using SweetSecrets.Contracts.Settings
+@using SweetSecrets.Web.Services.Settings
+
+@inject SettingsApiClient SettingsApiClient
 
 <PageTitle>Configuración - SweetSecrets</PageTitle>
 
-<section>
-    <h1>Configuración</h1>
+<section class="settings-page">
+    <header class="settings-header">
+        <div>
+            <span class="settings-eyebrow">Preferencias</span>
+            <h1>Configuración</h1>
+            <p>Administra los valores generales de tu cuenta.</p>
+        </div>
+    </header>
 
-    <p>
-        La configuración operativa del tenant se implementará en un bloque funcional posterior.
-    </p>
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="settings-state settings-state-success" role="status">
+            @_successMessage
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="settings-state">Cargando configuración...</div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="settings-state settings-state-error" role="alert">
+            @_errorMessage
+            <button type="button" class="secondary-button" @onclick="LoadSettingsAsync">Reintentar</button>
+        </div>
+    }
+    else if (_settings.Count == 0)
+    {
+        <div class="settings-state">No hay configuraciones disponibles.</div>
+    }
+    else
+    {
+        <div class="settings-grid">
+            @foreach (var setting in _settings)
+            {
+                <article class="setting-card">
+                    <div class="setting-card-header">
+                        <div>
+                            <span class="setting-key">@DisplayName(setting.Key)</span>
+                            <h2>@setting.Value</h2>
+                        </div>
+                        <button type="button"
+                                class="secondary-button"
+                                disabled="@_isSaving"
+                                @onclick="() => OpenEdit(setting)">
+                            Modificar
+                        </button>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(setting.Description))
+                    {
+                        <p>@setting.Description</p>
+                    }
+
+                    <dl class="setting-metadata">
+                        <div><dt>Clave</dt><dd>@setting.Key</dd></div>
+                        <div><dt>Última actualización</dt><dd>@FormatDate(setting.UpdatedAt ?? setting.CreatedAt)</dd></div>
+                    </dl>
+                </article>
+            }
+        </div>
+    }
+
+    @if (_editingSetting is not null)
+    {
+        <section class="setting-form-card">
+            <div class="setting-form-header">
+                <div>
+                    <span class="settings-eyebrow">Edición</span>
+                    <h2>@DisplayName(_editingSetting.Key)</h2>
+                </div>
+                <button type="button" class="secondary-button" disabled="@_isSaving" @onclick="CloseEdit">Cancelar</button>
+            </div>
+
+            <EditForm Model="_editModel" OnValidSubmit="SaveSettingAsync">
+                <div class="form-field">
+                    <label for="setting-value">Valor</label>
+                    @if (IsMultiplier(_editingSetting.Key))
+                    {
+                        <InputNumber id="setting-value" class="form-control" min="0.000001" step="any" @bind-Value="_editModel.Multiplier" />
+                        <small>Debe ser mayor que cero. Puedes utilizar decimales, por ejemplo 4.5.</small>
+                    }
+                    else
+                    {
+                        <InputText id="setting-value" class="form-control" maxlength="1000" @bind-Value="_editModel.Value" />
+                    }
+                </div>
+
+                @if (IsMultiplier(_editingSetting.Key))
+                {
+                    <div class="settings-note">
+                        Este valor se utiliza al iniciar nuevas recetas. Las recetas existentes conservan su propio multiplicador y no serán recalculadas.
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_formError))
+                {
+                    <div class="settings-state settings-state-error" role="alert">@_formError</div>
+                }
+
+                <div class="form-footer">
+                    <button type="submit" class="primary-button" disabled="@_isSaving">
+                        @(_isSaving ? "Guardando..." : "Guardar cambios")
+                    </button>
+                </div>
+            </EditForm>
+        </section>
+    }
 </section>
+
+@code {
+    private IReadOnlyList<SettingListItemResponse> _settings = [];
+    private readonly EditSettingModel _editModel = new();
+    private SettingListItemResponse? _editingSetting;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+    private string? _formError;
+    private string? _successMessage;
+
+    protected override Task OnInitializedAsync() => LoadSettingsAsync();
+
+    private async Task LoadSettingsAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _settings = await SettingsApiClient.GetAllAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            _errorMessage = GetMessage(ex, "No fue posible cargar la configuración.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenEdit(SettingListItemResponse setting)
+    {
+        _editingSetting = setting;
+        _formError = null;
+        _successMessage = null;
+        _editModel.Value = setting.Value;
+
+        if (IsMultiplier(setting.Key))
+        {
+            _editModel.Multiplier = decimal.TryParse(
+                setting.Value,
+                NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture,
+                out var multiplier)
+                    ? multiplier
+                    : 0m;
+        }
+    }
+
+    private void CloseEdit()
+    {
+        _editingSetting = null;
+        _formError = null;
+    }
+
+    private async Task SaveSettingAsync()
+    {
+        if (_isSaving || _editingSetting is null)
+            return;
+
+        var value = IsMultiplier(_editingSetting.Key)
+            ? _editModel.Multiplier.ToString(CultureInfo.InvariantCulture)
+            : _editModel.Value.Trim();
+
+        _formError = IsMultiplier(_editingSetting.Key) && _editModel.Multiplier <= 0
+            ? "El multiplicador debe ser mayor que cero."
+            : string.IsNullOrWhiteSpace(value)
+                ? "El valor es obligatorio."
+                : null;
+
+        if (_formError is not null)
+            return;
+
+        _isSaving = true;
+
+        try
+        {
+            var key = _editingSetting.Key;
+            await SettingsApiClient.UpdateAsync(key, new UpdateSettingRequest { Value = value });
+            _settings = await SettingsApiClient.GetAllAsync();
+            _editingSetting = null;
+            _successMessage = $"{DisplayName(key)} se actualizó correctamente.";
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            _formError = GetMessage(ex, "No fue posible guardar la configuración.");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private static bool IsMultiplier(string key) =>
+        string.Equals(key, "MULTIPLIER", StringComparison.OrdinalIgnoreCase);
+
+    private static string DisplayName(string key) => IsMultiplier(key)
+        ? "Multiplicador predeterminado para nuevas recetas"
+        : key;
+
+    private static string FormatDate(DateTime value) =>
+        value.ToLocalTime().ToString("g");
+
+    private static string GetMessage(Exception exception, string fallback) =>
+        exception is SettingsApiException && !string.IsNullOrWhiteSpace(exception.Message)
+            ? exception.Message
+            : fallback;
+
+    private sealed class EditSettingModel
+    {
+        public string Value { get; set; } = string.Empty;
+        public decimal Multiplier { get; set; }
+    }
+}

@@ -8,10 +8,7 @@ namespace SweetSecrets.Api.Controllers;
 
 [ApiController]
 [Route("api/settings")]
-[Authorize(
-    Roles =
-        PlatformRoles.TenantOwner + "," +
-        PlatformRoles.TenantUser)]
+[Authorize(Roles = PlatformRoles.TenantOwner)]
 public sealed class SettingsController : ControllerBase
 {
     private readonly ISettingQueryService _settingQueryService;

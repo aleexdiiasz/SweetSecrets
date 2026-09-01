@@ -111,7 +111,7 @@ Value = 3
 Descripción:
 
 ```text
-Multiplicador general utilizado para calcular el precio sugerido de las recetas.
+Multiplicador predeterminado para nuevas recetas.
 ```
 
 ---
@@ -507,21 +507,14 @@ UpdatedAt = DateTime.UtcNow
 
 ## 23. Autorización
 
-Lectura:
-
-```text
-TENANT_OWNER ✅
-TENANT_USER  ✅
-```
-
-Modificación:
+Lectura y modificación operacional actual:
 
 ```text
 TENANT_OWNER ✅
 TENANT_USER  ❌
 ```
 
-`PUT` utiliza:
+`SettingsController` utiliza:
 
 ```text
 [Authorize(Roles = PlatformRoles.TenantOwner)]
@@ -558,15 +551,13 @@ existe en `PlatformRoles`.
 
 Sin embargo, actualmente no existe un flujo funcional para crear y administrar usuarios adicionales `TENANT_USER`.
 
-Por esta razón, la restricción de modificación:
+El rol permanece pausado para la aplicación operacional. A partir de TEN-017, el controlador completo de configuración está restringido a:
 
 ```text
-TENANT_USER → 403
+TENANT_OWNER
 ```
 
-queda implementada mediante autorización por rol, pero su prueba funcional directa queda pendiente hasta existir el módulo de administración de usuarios tenant.
-
-No se crearon usuarios Identity manualmente únicamente para esta prueba.
+No se implementan lectura, modificación ni UI de configuración para `TENANT_USER` hasta que un issue futuro reactive expresamente ese rol.
 
 ---
 
@@ -622,14 +613,25 @@ fue restaurado a:
 
 ## 28. MULTIPLIER y Recipe.Multiplier
 
-Actualmente existen dos datos diferenciados:
+Existen dos datos diferenciados:
 
 ```text
 settings.MULTIPLIER
 Recipe.Multiplier
 ```
 
-TEN-011 no modifica la lógica existente del módulo Recipes.
+Regla oficial a partir de TEN-017:
+
+```text
+settings.MULTIPLIER
+→ valor predeterminado al abrir una receta nueva
+→ se copia al CreateRecipeRequest
+
+CreateRecipeRequest.Multiplier
+→ Recipe.Multiplier persistido
+```
+
+Cada receta conserva su multiplicador propio después de guardarse. El usuario puede modificarlo posteriormente desde la edición de la receta.
 
 Actualmente:
 
@@ -641,13 +643,13 @@ CreateRecipeCommand.Multiplier
 Recipe.Multiplier
 ```
 
-Cada receta conserva su propio multiplicador.
-
-`RecipeCommandService` no consulta actualmente:
+Cambiar:
 
 ```text
 settings.MULTIPLIER
 ```
+
+no modifica ni recalcula recetas existentes.
 
 ---
 
@@ -659,19 +661,7 @@ TEN-011 implementa la administración operacional de:
 settings
 ```
 
-pero no cambia silenciosamente el comportamiento existente de las recetas.
-
-Una posible evolución futura es utilizar:
-
-```text
-settings.MULTIPLIER
-```
-
-como valor predeterminado al crear una receta.
-
-Esa integración debe definirse explícitamente como una regla funcional independiente.
-
-No forma parte de TEN-011.
+TEN-017 define y aplica `settings.MULTIPLIER` exclusivamente como valor inicial de nuevas recetas en la Web. El backend de recetas sigue recibiendo y persistiendo `CreateRecipeRequest.Multiplier`; no consulta settings durante la creación ni altera recetas existentes.
 
 ---
 
@@ -761,7 +751,7 @@ Implementado:
 ✅ protección ante coma decimal
 ✅ UpdatedAt
 ✅ autorización TENANT_OWNER
-✅ lectura preparada para TENANT_USER
+✅ autorización operacional TENANT_OWNER
 ✅ aislamiento database-per-tenant
 ✅ no creación arbitraria mediante PUT
 ✅ pruebas funcionales
@@ -771,6 +761,4 @@ Pendiente fuera de TEN-011:
 
 ```text
 administración funcional de TENANT_USER
-integración opcional de settings.MULTIPLIER como default de nuevas recetas
-UI Blazor para configuración
 ```
