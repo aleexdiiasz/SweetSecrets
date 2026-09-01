@@ -1,5 +1,14 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-027 - PLATFORM_ADMIN Platform Dashboard
+
+TEN-027 convierte /admin en un dashboard operacional real y agrega GET /api/admin/dashboard, protegido exclusivamente para PLATFORM_ADMIN. El contrato agrega totales y distribucion de tenants, usuarios por rol, bloqueados, correos pendientes de confirmacion, sesiones activas, usuarios online y listas recientes de tenants, usuarios y auditoria.
+
+Todas las consultas operan exclusivamente sobre MASTER mediante PlatformDashboardQueryService. Online significa usuario distinto con sesion activa y LastActivityAt dentro de los ultimos 5 minutos. Los conteos, agrupaciones, filtros, orden y limites se traducen a SQL; no se recorren tenant DBs, no se cargan tablas completas y no existe N+1.
+
+La UI incluye loading, error con reintento, estados vacios, cards, distribuciones CSS, actividad reciente y accesos a Tenants, Usuarios y Sesiones. No duplica /health/live ni /health/ready y no muestra metricas de productos, recetas, ventas, ingresos, utilidad o costos. Documentacion: docs/technical/PLATFORM_ADMIN_DASHBOARD.md. PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR con MASTER real y responsive aproximadamente a 390 px.
+
+---
 ## Actualizacion TEN-026 - PLATFORM_ADMIN Users & Sessions
 
 TEN-026 habilita /admin/users, detalle y /admin/sessions sobre MASTER, con busqueda y filtros server-side, paginacion, rol, tenant, estado de cuenta, confirmacion de correo, actividad y presencia derivada.
