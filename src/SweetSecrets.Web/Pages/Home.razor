@@ -1,76 +1,92 @@
-﻿@page "/"
+@page "/"
 @attribute [Authorize(Roles = "TENANT_OWNER")]
+@using SweetSecrets.Contracts.Dashboard
+@using SweetSecrets.Web.Services.Dashboard
+@inject DashboardApiClient DashboardApiClient
 
 <PageTitle>Inicio - SweetSecrets</PageTitle>
 
 <section class="dashboard">
     <div class="dashboard-heading">
-        <div>
-            <span class="dashboard-eyebrow">
-                Resumen
-            </span>
+        <div><span class="dashboard-eyebrow">Resumen del negocio</span><h1>Panel principal</h1><p>Consulta el estado actual de tus productos y recetas.</p></div>
+        <button class="refresh-button" type="button" disabled="@isLoading" @onclick="LoadAsync">Actualizar</button>
+    </div>
 
-            <h1>Bienvenido a SweetSecrets</h1>
-
-            <p>
-                Administra los costos de tus productos y recetas desde un solo lugar.
-            </p>
+    @if (isLoading)
+    {
+        <div class="dashboard-state" role="status">Cargando resumen...</div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="dashboard-state dashboard-error" role="alert"><strong>No fue posible cargar el panel.</strong><span>@errorMessage</span><button type="button" @onclick="LoadAsync">Reintentar</button></div>
+    }
+    else if (dashboard is not null)
+    {
+        <div class="metric-grid">
+            <article class="metric-card"><span>Productos</span><strong>@dashboard.TotalProducts</strong><small>@dashboard.ActiveProducts activos</small></article>
+            <article class="metric-card"><span>Recetas</span><strong>@dashboard.TotalRecipes</strong><small>@dashboard.ActiveRecipes activas</small></article>
+            <article class="metric-card"><span>Costo promedio</span><strong>@dashboard.AverageActiveRecipeCost.ToString("C2")</strong><small>por receta activa</small></article>
         </div>
-    </div>
 
-    <div class="dashboard-cards">
-        <article class="dashboard-card">
-            <div class="dashboard-card-icon">
-                □
-            </div>
+        <nav class="quick-actions" aria-label="Acciones rápidas">
+            <a href="/productos">Administrar productos <span aria-hidden="true">→</span></a>
+            <a href="/recetas">Administrar recetas <span aria-hidden="true">→</span></a>
+            <a href="/configuracion">Configurar multiplicador <span aria-hidden="true">→</span></a>
+        </nav>
 
-            <div>
-                <span class="dashboard-card-label">
-                    Productos
-                </span>
-
-                <strong>Catálogo de ingredientes</strong>
-
-                <p>
-                    Consulta y administra precios, cantidades y unidades de compra.
-                </p>
-            </div>
-        </article>
-
-        <article class="dashboard-card">
-            <div class="dashboard-card-icon">
-                ≡
-            </div>
-
-            <div>
-                <span class="dashboard-card-label">
-                    Recetas
-                </span>
-
-                <strong>Costeo de recetas</strong>
-
-                <p>
-                    Construye recetas y calcula automáticamente su costo.
-                </p>
-            </div>
-        </article>
-
-        <article class="dashboard-card">
-            <div class="dashboard-card-icon">
-                ⚙
-            </div>
-
-            <div>
-                <span class="dashboard-card-label">
-                    Configuración
-                </span>
-
-                <strong>Preferencias de cuenta</strong>
-
-                <p>
-                    Administra la configuración operativa de tu espacio.
-                </p>
-            </div>
-        </article>
-    </div>
+        <div class="activity-grid">
+            <section class="activity-panel">
+                <div class="panel-heading"><div><span>Actividad reciente</span><h2>Recetas</h2></div><a href="/recetas">Ver todas</a></div>
+                @if (dashboard.RecentRecipes.Count == 0)
+                {
+                    <p class="empty-state">Todavía no hay recetas. Crea la primera desde la sección Recetas.</p>
+                }
+                else
+                {
+                    <div class="activity-list">
+                        @foreach (var recipe in dashboard.RecentRecipes)
+                        {
+                            <article class="activity-item"><div><strong>@recipe.Name</strong><small>@FormatActivity(recipe.ActivityAt) · @(recipe.IsActive ? "Activa" : "Inactiva")</small></div><div class="amount"><strong>@recipe.TotalCost.ToString("C2")</strong><small>Sugerido @recipe.SuggestedPrice.ToString("C2")</small></div></article>
+                        }
+                    </div>
+                }
+            </section>
+            <section class="activity-panel">
+                <div class="panel-heading"><div><span>Actividad reciente</span><h2>Productos</h2></div><a href="/productos">Ver todos</a></div>
+                @if (dashboard.RecentProducts.Count == 0)
+                {
+                    <p class="empty-state">Todavía no hay productos en el catálogo.</p>
+                }
+                else
+                {
+                    <div class="activity-list">
+                        @foreach (var product in dashboard.RecentProducts)
+                        {
+                            <article class="activity-item"><div><strong>@product.Name</strong><small>@FormatActivity(product.ActivityAt) · @(product.IsActive ? "Activo" : "Inactivo")</small></div><div class="amount"><strong>@product.PurchasePrice.ToString("C2")</strong><small>Costo unitario @product.UnitCost.ToString("C6")</small></div></article>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+    }
 </section>
+
+@code {
+    private DashboardResponse? dashboard;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try { dashboard = await DashboardApiClient.GetAsync(); }
+        catch (HttpRequestException) { errorMessage = "Verifica tu conexión e inténtalo de nuevo."; }
+        catch (InvalidOperationException ex) { errorMessage = ex.Message; }
+        finally { isLoading = false; }
+    }
+
+    private static string FormatActivity(DateTime value) => value.ToLocalTime().ToString("dd MMM yyyy");
+}

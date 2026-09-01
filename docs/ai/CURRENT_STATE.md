@@ -1,5 +1,17 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-022 - Tenant Owner Dashboard Improvements
+
+TEN-022 convierte `/` en un dashboard real para TENANT_OWNER. `GET /api/dashboard` consulta exclusivamente la base tenant resuelta desde la identidad y devuelve productos/recetas totales y activos, costo promedio de recetas activas, y los cinco productos y recetas con actividad mas reciente.
+
+La Web usa DashboardApiClient y presenta loading, error con reintento, estados vacios, metricas, actividad y accesos a Productos, Recetas y Configuracion. No se exponen TenantId, DatabaseName ni ConnectionString, no se consulta MASTER y no se inventan ventas, utilidad o ingresos.
+
+Documentacion: docs/technical/DASHBOARD_UI.md.
+
+PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR con datos reales, tenant vacio, aislamiento entre dos tenants y responsive aproximadamente a 390 px.
+
+---
+
 ## Actualizacion TEN-021 - Email Infrastructure + Email Confirmation
 
 TEN-021 generaliza el envio transaccional mediante ITransactionalEmailSender. Development escribe mensajes sensibles en %TEMP%/SweetSecrets/email y Production queda con adapter no configurado hasta seleccionar proveedor y URLs publicas. Password Recovery reutiliza esta infraestructura.
