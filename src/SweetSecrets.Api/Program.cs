@@ -25,6 +25,8 @@ using SweetSecrets.Application.Common.Settings;
 using SweetSecrets.Infrastructure.Services.Settings;
 using SweetSecrets.Application.Common.Units;
 using SweetSecrets.Infrastructure.Services.Units;
+using SweetSecrets.Application.Common.Email;
+using SweetSecrets.Infrastructure.Services.Email;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,6 +82,9 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 
 builder.Services.Configure<PasswordRecoveryOptions>(
     builder.Configuration.GetSection(PasswordRecoveryOptions.SectionName));
+
+builder.Services.Configure<EmailConfirmationOptions>(
+    builder.Configuration.GetSection(EmailConfirmationOptions.SectionName));
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -141,14 +146,16 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAccountSessionRefresher, IdentityAccountSessionRefresher>();
 
 builder.Services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
+builder.Services.AddScoped<IEmailConfirmationService, EmailConfirmationService>();
+builder.Services.AddScoped<EmailConfirmationLoginPolicy>();
 
 if (builder.Environment.IsDevelopment())
 {
-    builder.Services.AddScoped<IPasswordResetNotificationService, DevelopmentPasswordResetNotificationService>();
+    builder.Services.AddScoped<ITransactionalEmailSender, DevelopmentTransactionalEmailSender>();
 }
 else
 {
-    builder.Services.AddScoped<IPasswordResetNotificationService, UnconfiguredPasswordResetNotificationService>();
+    builder.Services.AddScoped<ITransactionalEmailSender, UnconfiguredTransactionalEmailSender>();
 }
 
 builder.Services.AddScoped<ITenantDatabaseManager, PostgresTenantDatabaseManager>();

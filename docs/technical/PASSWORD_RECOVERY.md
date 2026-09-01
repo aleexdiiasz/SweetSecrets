@@ -49,17 +49,17 @@ El endpoint no devuelve password hash, token, identificadores tenant ni detalles
 
 ## Estrategia de entrega
 
-La entrega está desacoplada mediante `IPasswordResetNotificationService`.
+La entrega reutiliza la infraestructura común de email transaccional mediante `ITransactionalEmailSender`.
 
-En Development, `DevelopmentPasswordResetNotificationService` escribe las instrucciones en una bandeja local:
+En Development, `DevelopmentTransactionalEmailSender` escribe las instrucciones en una bandeja local común:
 
 ```text
-%TEMP%/SweetSecrets/password-recovery
+%TEMP%/SweetSecrets/email
 ```
 
 El nombre del archivo es aleatorio y el log solo muestra su ruta. El archivo contiene el correo y enlace necesarios para pruebas locales; debe tratarse como información sensible y eliminarse después de probar. El token deja de ser válido después de una hora o al utilizarse correctamente.
 
-En ambientes que no son Development se registra `UnconfiguredPasswordResetNotificationService`. No se eligió proveedor comercial, SMTP ni credenciales. Hasta configurar una implementación productiva, la solicitud mantiene la respuesta genérica pero no puede entregar el enlace.
+En ambientes que no son Development se registra `UnconfiguredTransactionalEmailSender`. No se eligió proveedor comercial, SMTP ni credenciales. Hasta configurar una implementación productiva, la solicitud mantiene la respuesta genérica pero no puede entregar el enlace.
 
 ## UI
 
@@ -90,6 +90,5 @@ Debe comprobarse correo existente e inexistente con respuesta equivalente, lectu
 ## Limitaciones y decisiones pendientes
 
 - Falta elegir e implementar proveedor de correo para Production.
-- No se implementó confirmación de correo.
 - No hay rate limiting específico para los endpoints de recuperación.
 - No se implementa `TENANT_USER` ni UI administrativa.

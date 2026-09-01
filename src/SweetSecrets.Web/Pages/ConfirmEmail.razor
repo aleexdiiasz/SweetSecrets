@@ -1,0 +1,134 @@
+@page "/confirm-email"
+@layout AuthLayout
+
+@using SweetSecrets.Contracts.Auth
+@using SweetSecrets.Web.Services.Auth
+
+@inject AuthApiClient AuthApiClient
+
+<PageTitle>Confirmar correo - SweetSecrets</PageTitle>
+
+<div class="confirmation-card">
+    <div class="confirmation-header">
+        <h1>Confirmar correo</h1>
+        @if (Registered)
+        {
+            <p>Tu cuenta se creó correctamente. Confirma tu correo antes de iniciar sesión.</p>
+        }
+        else
+        {
+            <p>Completa la verificación de tu correo electrónico.</p>
+        }
+    </div>
+
+    @if (_isConfirming)
+    {
+        <div class="status-message" aria-live="polite">Validando enlace de confirmación...</div>
+    }
+    else if (_confirmationSucceeded)
+    {
+        <div class="success-message" role="status">@_message</div>
+        <a class="primary-link" href="/login">Iniciar sesión</a>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="@(_confirmationFailed ? "error-message" : "success-message")" role="status">@_message</div>
+        }
+
+        <EditForm Model="_resend" OnValidSubmit="ResendAsync">
+            <div class="form-group">
+                <label for="confirmation-email">Correo electrónico</label>
+                <InputText id="confirmation-email" class="form-control" type="email" autocomplete="email" @bind-Value="_resend.Email" />
+            </div>
+            <button type="submit" class="confirmation-button" disabled="@_isSending">
+                @(_isSending ? "Enviando..." : "Reenviar confirmación")
+            </button>
+        </EditForm>
+
+        <p class="auth-link"><a href="/login">Volver a iniciar sesión</a></p>
+    }
+</div>
+
+@code {
+    private readonly ResendEmailConfirmationRequest _resend = new();
+    private bool _isConfirming;
+    private bool _isSending;
+    private bool _confirmationSucceeded;
+    private bool _confirmationFailed;
+    private string? _processedToken;
+    private string? _message;
+
+    [SupplyParameterFromQuery(Name = "email")]
+    public string? Email { get; set; }
+
+    [SupplyParameterFromQuery(Name = "token")]
+    public string? Token { get; set; }
+
+    [SupplyParameterFromQuery(Name = "registered")]
+    public bool Registered { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _resend.Email = Email ?? _resend.Email;
+
+        if (string.IsNullOrWhiteSpace(Token) || Token == _processedToken)
+            return;
+
+        _processedToken = Token;
+        await ConfirmAsync();
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Token))
+        {
+            _confirmationFailed = true;
+            _message = "El enlace de confirmación no es válido o está incompleto.";
+            return;
+        }
+
+        _isConfirming = true;
+        try
+        {
+            var result = await AuthApiClient.ConfirmEmailAsync(new ConfirmEmailRequest
+            {
+                Email = Email,
+                Token = Token
+            });
+            _confirmationSucceeded = result.Succeeded;
+            _confirmationFailed = !result.Succeeded;
+            _message = result.Succeeded ? result.Message : result.ErrorMessage;
+        }
+        finally
+        {
+            _isConfirming = false;
+        }
+    }
+
+    private async Task ResendAsync()
+    {
+        if (_isSending)
+            return;
+
+        _confirmationFailed = string.IsNullOrWhiteSpace(_resend.Email) ||
+            !_resend.Email.Contains('@', StringComparison.Ordinal);
+        _message = _confirmationFailed ? "Ingresa un correo electrónico válido." : null;
+
+        if (_confirmationFailed)
+            return;
+
+        _isSending = true;
+        try
+        {
+            var result = await AuthApiClient.ResendEmailConfirmationAsync(_resend);
+            _confirmationFailed = !result.Succeeded;
+            _message = result.Succeeded ? result.Message : result.ErrorMessage;
+        }
+        finally
+        {
+            _isSending = false;
+        }
+    }
+}

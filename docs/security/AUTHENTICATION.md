@@ -226,9 +226,16 @@ TEN-020 agrega `/cuenta`, `GET /api/auth/account` y `POST /api/auth/change-passw
 
 Después de un cambio correcto se reemite la cookie conservando sus propiedades y los claims de tenant y sesión. La sesión actual continúa activa con el `SecurityStamp` actualizado.
 
+## Confirmación de correo
+
+TEN-021 agrega `POST /api/auth/resend-confirmation`, `POST /api/auth/confirm-email` y `/confirm-email`. Los tokens se generan y validan con ASP.NET Core Identity en MASTER.
+
+Las cuentas creadas desde `2026-09-01T00:00:00Z` deben confirmar su correo antes del login. Las cuentas legacy anteriores no se bloquean ni se alteran. Login valida primero la contraseña y después aplica la restricción, evitando revelar una cuenta pendiente ante credenciales incorrectas.
+
+El reenvío usa una respuesta genérica para correos inexistentes, confirmados, inactivos, bloqueados o fallos de entrega.
+
 ## Pendiente
 
-- confirmación de correo;
 - expiración avanzada de sesiones;
 - invalidación periódica basada en SecurityStamp;
 - rate limiting de login;

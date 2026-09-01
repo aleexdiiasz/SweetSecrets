@@ -28,13 +28,8 @@ public sealed class AuthApiClient
 
             if (!response.IsSuccessStatusCode)
             {
-                var message =
-                    await ReadErrorMessageAsync(
-                        response,
-                        cancellationToken);
-
-                return LoginAttemptResult.Failed(
-                    message);
+                var error = await ReadLoginErrorAsync(response, cancellationToken);
+                return LoginAttemptResult.Failed(error.Message, error.ErrorCode);
             }
 
             var loginResponse =
@@ -223,6 +218,77 @@ public sealed class AuthApiClient
         }
     }
 
+    public async Task<EmailConfirmationAttemptResult> ResendEmailConfirmationAsync(
+        ResendEmailConfirmationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync("api/auth/resend-confirmation", request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorMessageAsync(response, "No fue posible procesar la solicitud.", cancellationToken);
+                return EmailConfirmationAttemptResult.Failed(error);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ResendEmailConfirmationResponse>(cancellationToken: cancellationToken);
+            return result is null
+                ? EmailConfirmationAttemptResult.Failed("No fue posible validar la respuesta del servidor.")
+                : EmailConfirmationAttemptResult.Success(result.Message);
+        }
+        catch (HttpRequestException)
+        {
+            return EmailConfirmationAttemptResult.Failed("No fue posible conectar con el servidor.");
+        }
+    }
+
+    public async Task<EmailConfirmationAttemptResult> ConfirmEmailAsync(
+        ConfirmEmailRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync("api/auth/confirm-email", request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorMessageAsync(response, "El enlace de confirmación no es válido o ya expiró.", cancellationToken);
+                return EmailConfirmationAttemptResult.Failed(error);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ConfirmEmailResponse>(cancellationToken: cancellationToken);
+            return result is null
+                ? EmailConfirmationAttemptResult.Failed("No fue posible validar la respuesta del servidor.")
+                : EmailConfirmationAttemptResult.Success(result.Message);
+        }
+        catch (HttpRequestException)
+        {
+            return EmailConfirmationAttemptResult.Failed("No fue posible conectar con el servidor.");
+        }
+    }
+
+    private static async Task<(string Message, string? ErrorCode)> ReadLoginErrorAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var document = await JsonDocument.ParseAsync(
+                await response.Content.ReadAsStreamAsync(cancellationToken),
+                cancellationToken: cancellationToken);
+            var root = document.RootElement;
+            var message = TryGetString(root, "message") ?? TryGetString(root, "Message") ?? "Correo o contraseña incorrectos.";
+            var errorCode = TryGetString(root, "errorCode") ?? TryGetString(root, "ErrorCode");
+            return (message, errorCode);
+        }
+        catch (JsonException)
+        {
+            return ("Correo o contraseña incorrectos.", null);
+        }
+    }
+
+    private static string? TryGetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var property) ? property.GetString() : null;
+
     private static Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         ReadErrorMessageAsync(response, "Correo o contraseña incorrectos.", cancellationToken);
 
@@ -260,7 +326,7 @@ public sealed class AuthApiClient
     }
 }
 
-public sealed record LoginAttemptResult(bool Succeeded, LoginResponse? Response, string? ErrorMessage)
+public sealed record LoginAttemptResult(bool Succeeded, LoginResponse? Response, string? ErrorMessage, string? ErrorCode)
 {
     public static LoginAttemptResult Success(
         LoginResponse response)
@@ -268,15 +334,17 @@ public sealed record LoginAttemptResult(bool Succeeded, LoginResponse? Response,
         return new LoginAttemptResult(
             true,
             response,
+            null,
             null);
     }
 
-    public static LoginAttemptResult Failed(string message)
+    public static LoginAttemptResult Failed(string message, string? errorCode = null)
     {
         return new LoginAttemptResult(
             false,
             null,
-            message);
+            message,
+            errorCode);
     }
 }
 
@@ -308,4 +376,10 @@ public sealed record ChangePasswordAttemptResult(bool Succeeded, string? Message
 {
     public static ChangePasswordAttemptResult Success(string message) => new(true, message, null);
     public static ChangePasswordAttemptResult Failed(string message) => new(false, null, message);
+}
+
+public sealed record EmailConfirmationAttemptResult(bool Succeeded, string? Message, string? ErrorMessage)
+{
+    public static EmailConfirmationAttemptResult Success(string message) => new(true, message, null);
+    public static EmailConfirmationAttemptResult Failed(string message) => new(false, null, message);
 }
