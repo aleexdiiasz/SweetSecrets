@@ -205,6 +205,7 @@ builder.Services.AddScoped<ISettingCommandService, SettingCommandService>();
 builder.Services.AddScoped<IUnitQueryService, UnitQueryService>();
 
 builder.Services.AddScoped<IDashboardQueryService, DashboardQueryService>();
+builder.Services.AddScoped<IPlatformDashboardQueryService, PlatformDashboardQueryService>();
 
 builder.Services.AddScoped<IPlatformTenantStore, PlatformTenantStore>();
 builder.Services.AddScoped<IPlatformTenantAdminService, PlatformTenantAdminService>();

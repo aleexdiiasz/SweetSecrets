@@ -1,14 +1,59 @@
 @page "/admin"
 @layout AdminLayout
 @attribute [Authorize(Roles = "PLATFORM_ADMIN")]
+@using SweetSecrets.Contracts.Admin.Dashboard
+@using SweetSecrets.Web.Services.Admin
+@inject PlatformDashboardApiClient Api
 
 <PageTitle>Administración de plataforma - SweetSecrets</PageTitle>
-
 <section class="admin-home">
-    <header><span>SweetSecrets</span><h1>Administración de plataforma</h1><p>Este espacio centraliza la operación global en MASTER, separada de los datos y herramientas de cada tenant.</p></header>
-    <div class="module-grid">
-        <article><strong>Tenants</strong><p>Administración del ciclo de vida de tenants.</p><span>Disponible en TEN-025</span></article>
-        <article><strong>Usuarios y sesiones</strong><p>Control global de accesos, bloqueos y sesiones.</p><span>Disponible en TEN-026</span></article>
-        <article><strong>Estado de plataforma</strong><p>Resumen operacional y auditoría administrativa.</p><span>Disponible en TEN-027</span></article>
-    </div>
+    <header><span>SweetSecrets</span><h1>Administración de plataforma</h1><p>Estado operacional global construido exclusivamente con información de MASTER.</p></header>
+    @if (loading) { <div class="state">Cargando estado de plataforma...</div> }
+    else if (error is not null) { <div class="state error" role="alert">@error <button @onclick="LoadAsync">Reintentar</button></div> }
+    else if (data is not null)
+    {
+        <div class="metric-grid">
+            <article><span>Tenants</span><strong>@data.TotalTenants</strong><small>@Count("Active") activos · @Count("Suspended") suspendidos</small></article>
+            <article><span>Usuarios</span><strong>@data.TotalUsers</strong><small>@data.TenantOwners owners · @data.PlatformAdmins admins</small></article>
+            <article><span>Online</span><strong>@data.OnlineUsers</strong><small>Actividad en los últimos 5 minutos</small></article>
+            <article><span>Sesiones activas</span><strong>@data.ActiveSessions</strong><small>@data.BlockedUsers usuarios bloqueados</small></article>
+        </div>
+        <div class="dashboard-grid">
+            <article class="panel status-panel"><h2>Tenants por estado</h2><div class="status-list">
+                @foreach (var status in Statuses)
+                {
+                    var value = Count(status.Key);
+                    <div><span><em class="dot @status.Key.ToLowerInvariant()"></em>@status.Value</span><strong>@value</strong><i style="width:@($"{Percent(value)}%")"></i></div>
+                }
+            </div></article>
+            <article class="panel user-panel"><h2>Resumen de usuarios</h2><dl><dt>Tenant owners</dt><dd>@data.TenantOwners</dd><dt>Platform admins</dt><dd>@data.PlatformAdmins</dd><dt>Bloqueados</dt><dd>@data.BlockedUsers</dd><dt>Correo pendiente</dt><dd>@data.PendingEmailConfirmation</dd></dl></article>
+        </div>
+        <div class="recent-grid">
+            <article class="panel"><h2>Tenants recientes</h2>
+                @if (data.RecentTenants.Count == 0) { <p class="empty">Sin tenants registrados.</p> }
+                else { @foreach (var item in data.RecentTenants) { <a class="recent" href="@($"/admin/tenants/{item.Id}")"><span><strong>@item.Name</strong><small>@item.Code · @StatusText(item.Status)</small></span><time>@Format(item.CreatedAt)</time></a> } }
+            </article>
+            <article class="panel"><h2>Usuarios recientes</h2>
+                @if (data.RecentUsers.Count == 0) { <p class="empty">Sin usuarios registrados.</p> }
+                else { @foreach (var item in data.RecentUsers) { <a class="recent" href="@($"/admin/users/{item.Id}")"><span><strong>@item.FullName</strong><small>@item.Email · @RoleText(item.Role)</small></span><time>@Format(item.CreatedAt)</time></a> } }
+            </article>
+            <article class="panel events"><h2>Actividad administrativa</h2>
+                @if (data.RecentEvents.Count == 0) { <p class="empty">Sin eventos recientes.</p> }
+                else { @foreach (var item in data.RecentEvents) { <div class="recent"><span><strong>@item.Action</strong><small>@item.Description</small></span><time>@Format(item.CreatedAt)</time></div> } }
+            </article>
+        </div>
+        <nav class="quick" aria-label="Accesos rápidos"><a href="/admin/tenants">Administrar tenants →</a><a href="/admin/users">Administrar usuarios →</a><a href="/admin/sessions">Consultar sesiones →</a></nav>
+    }
 </section>
+
+@code {
+    private PlatformDashboardResponse? data; private bool loading=true; private string? error;
+    private static readonly KeyValuePair<string,string>[] Statuses=[new("Active","Activos"),new("Suspended","Suspendidos"),new("Provisioning","En preparación"),new("Failed","Fallidos"),new("Disabled","Deshabilitados")];
+    protected override Task OnInitializedAsync()=>LoadAsync();
+    private async Task LoadAsync(){loading=true;error=null;try{data=await Api.GetAsync();}catch(HttpRequestException){error="No fue posible cargar el estado de plataforma.";}finally{loading=false;}}
+    private int Count(string status)=>data?.TenantsByStatus.GetValueOrDefault(status)??0;
+    private decimal Percent(int value)=>data is null||data.TotalTenants==0?0:Math.Round(value*100m/data.TotalTenants,1);
+    private static string Format(DateTime value)=>value.ToLocalTime().ToString("dd MMM yyyy HH:mm");
+    private static string StatusText(string value)=>value switch{"Active"=>"Activo","Suspended"=>"Suspendido","Provisioning"=>"En preparación","Failed"=>"Fallido","Disabled"=>"Deshabilitado",_=>value};
+    private static string RoleText(string value)=>value=="PLATFORM_ADMIN"?"Platform admin":"Tenant owner";
+}
