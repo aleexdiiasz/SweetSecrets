@@ -363,6 +363,10 @@ Inicialmente no utilizar:
 
 Solo agregar infraestructura cuando exista necesidad real.
 
+## Disponibilidad operacional
+
+TEN-023 agrega `/health/live` para disponibilidad del proceso y `/health/ready` para conectividad con MASTER. Readiness no recorre bases tenant: cada base operacional se abre únicamente después de resolver al tenant desde una identidad autenticada. Los detalles y requisitos Production están documentados en `docs/technical/PRODUCTION_READINESS.md`.
+
 ## Docker
 
 Desarrollo utiliza Docker Compose.

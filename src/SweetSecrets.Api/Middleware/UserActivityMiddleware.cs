@@ -19,6 +19,12 @@ public class UserActivityMiddleware
         IUserSessionService sessionService,
         UserManager<ApplicationUser> userManager)
     {
+        if (context.Request.Path.StartsWithSegments("/health"))
+        {
+            await _next(context);
+            return;
+        }
+
         if (context.User.Identity?.IsAuthenticated == true)
         {
             await UpdateActivityAsync(
