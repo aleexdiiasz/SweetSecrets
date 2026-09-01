@@ -1,8 +1,33 @@
 @inject NavigationManager Navigation
+@using SweetSecrets.Contracts.Auth
+
+@if (_isResolving)
+{
+    <p role="status">Validando acceso...</p>
+}
 
 @code {
-    protected override void OnInitialized()
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private bool _isResolving = true;
+
+    protected override async Task OnInitializedAsync()
     {
-        Navigation.NavigateTo("/login", replace: true);
+        var state = AuthenticationStateTask is null
+            ? null
+            : await AuthenticationStateTask;
+
+        var roles = state?.User.Claims
+            .Where(claim => claim.Type == System.Security.Claims.ClaimTypes.Role)
+            .Select(claim => claim.Value)
+            ?? [];
+
+        _isResolving = false;
+        Navigation.NavigateTo(
+            state?.User.Identity?.IsAuthenticated == true
+                ? AuthenticatedAreaNavigation.ResolveHome(roles)
+                : AuthenticatedAreaNavigation.Login,
+            replace: true);
     }
 }

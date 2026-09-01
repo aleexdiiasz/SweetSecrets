@@ -30,6 +30,8 @@ El administrador de plataforma utiliza:
 
 TenantId = null
 
+TEN-024 mantiene esta regla en `/admin`: el shell no resuelve tenant ni consume modulos operacionales. La ruta requiere `PLATFORM_ADMIN`; las rutas tenant continúan requiriendo `TENANT_OWNER`.
+
 ## Cookies
 
 La autenticación utiliza cookies Identity.
@@ -67,6 +69,8 @@ Proceso:
 11. agregar session_id como claim;
 12. agregar tenant_id cuando corresponda;
 13. registrar LOGIN_SUCCESS.
+
+La respuesta exitosa incluye los roles obtenidos por Identity para elegir el destino inicial de UI: `PLATFORM_ADMIN` va a `/admin` y `TENANT_OWNER` a `/`. Esta selección no reemplaza la autorización de páginas y endpoints.
 
 ## Login fallido
 

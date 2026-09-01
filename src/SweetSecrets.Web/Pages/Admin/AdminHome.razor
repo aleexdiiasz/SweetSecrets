@@ -1,0 +1,14 @@
+@page "/admin"
+@layout AdminLayout
+@attribute [Authorize(Roles = "PLATFORM_ADMIN")]
+
+<PageTitle>Administración de plataforma - SweetSecrets</PageTitle>
+
+<section class="admin-home">
+    <header><span>SweetSecrets</span><h1>Administración de plataforma</h1><p>Este espacio centraliza la operación global en MASTER, separada de los datos y herramientas de cada tenant.</p></header>
+    <div class="module-grid">
+        <article><strong>Tenants</strong><p>Administración del ciclo de vida de tenants.</p><span>Disponible en TEN-025</span></article>
+        <article><strong>Usuarios y sesiones</strong><p>Control global de accesos, bloqueos y sesiones.</p><span>Disponible en TEN-026</span></article>
+        <article><strong>Estado de plataforma</strong><p>Resumen operacional y auditoría administrativa.</p><span>Disponible en TEN-027</span></article>
+    </div>
+</section>
