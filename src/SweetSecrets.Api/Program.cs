@@ -70,6 +70,7 @@ builder.Services
             TimeSpan.FromMinutes(15);
     })
     .AddEntityFrameworkStores<MasterDbContext>()
+    .AddErrorDescriber<SpanishIdentityErrorDescriber>()
     .AddDefaultTokenProviders();
 
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>

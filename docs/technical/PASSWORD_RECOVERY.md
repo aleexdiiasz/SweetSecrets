@@ -70,10 +70,12 @@ En ambientes que no son Development se registra `UnconfiguredPasswordResetNotifi
 
 El backend conserva las reglas definitivas de contraseña configuradas en Identity.
 
+Los errores de la política de contraseña se localizan de forma centralizada mediante `SpanishIdentityErrorDescriber`. Reset, Register y cualquier otro flujo que utilice el mismo `UserManager` reciben mensajes consistentes en español para longitud mínima, carácter especial, dígito, letra minúscula, letra mayúscula y caracteres únicos. La UI no replica ni sustituye estas reglas; Identity continúa siendo la autoridad.
+
 ## Pruebas
 
 - Build aislado: correcto, 0 advertencias y 0 errores.
-- Tests: 2 aprobados, 0 fallidos.
+- Tests automatizados cubren la entrega Development y la localización de errores de contraseña.
 - Se agregó una prueba que verifica la entrega en la bandeja local Development y elimina el archivo generado.
 - `git diff --check`: correcto.
 
