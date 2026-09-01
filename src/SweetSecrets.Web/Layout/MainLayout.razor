@@ -23,6 +23,11 @@
             </div>
 
             <div class="app-header-actions">
+                <AuthorizeView Roles="TENANT_OWNER">
+                    <Authorized>
+                        <a class="account-link" href="/cuenta">Mi cuenta</a>
+                    </Authorized>
+                </AuthorizeView>
                 <button type="button"
                         class="logout-button"
                         @onclick="LogoutAsync">

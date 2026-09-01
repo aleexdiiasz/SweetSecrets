@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SweetSecrets.Contracts.Auth;
+using SweetSecrets.Application.Common.Authentication;
 using SweetSecrets.Application.Common.Registration;
+using SweetSecrets.Application.Common.Security;
 
 namespace SweetSecrets.Api.Controllers;
 
@@ -11,15 +13,18 @@ namespace SweetSecrets.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly SweetSecrets.Application.Common.Authentication.IAuthenticationService _authenticationService;
+    private readonly IAccountService _accountService;
     private readonly SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService _passwordRecoveryService;
     private readonly ISelfRegistrationService _selfRegistrationService;
 
     public AuthController(
         SweetSecrets.Application.Common.Authentication.IAuthenticationService authenticationService,
+        IAccountService accountService,
         SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService passwordRecoveryService,
         ISelfRegistrationService selfRegistrationService)
     {
         _authenticationService = authenticationService;
+        _accountService = accountService;
         _passwordRecoveryService = passwordRecoveryService;
         _selfRegistrationService = selfRegistrationService;
     }
@@ -208,5 +213,53 @@ public class AuthController : ControllerBase
                 ?? string.Empty,
             Roles = roles
         });
+    }
+
+    [Authorize(Roles = PlatformRoles.TenantOwner)]
+    [HttpGet("account")]
+    public async Task<ActionResult<AccountResponse>> Account(CancellationToken cancellationToken)
+    {
+        if (!TryGetAuthenticatedUserId(out var userId))
+            return Unauthorized();
+
+        var account = await _accountService.GetAsync(userId, cancellationToken);
+
+        if (account is null)
+            return Unauthorized();
+
+        return Ok(new AccountResponse
+        {
+            FullName = account.FullName,
+            Email = account.Email
+        });
+    }
+
+    [Authorize(Roles = PlatformRoles.TenantOwner)]
+    [HttpPost("change-password")]
+    public async Task<ActionResult<ChangePasswordResponse>> ChangePassword(
+        ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetAuthenticatedUserId(out var userId))
+            return Unauthorized();
+
+        var result = await _accountService.ChangePasswordAsync(
+            userId,
+            request.CurrentPassword,
+            request.NewPassword,
+            cancellationToken);
+
+        if (!result.Succeeded)
+            return BadRequest(new { message = result.ErrorMessage });
+
+        return Ok(new ChangePasswordResponse
+        {
+            Message = "Tu contraseña se actualizó correctamente. La sesión actual continúa activa."
+        });
+    }
+
+    private bool TryGetAuthenticatedUserId(out Guid userId)
+    {
+        return Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
     }
 }

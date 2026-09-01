@@ -12,11 +12,16 @@ public class TenantUserProvisioningService : ITenantUserProvisioningService
 {
     private readonly MasterDbContext _masterDbContext;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IdentityErrorLocalizer _errorLocalizer;
 
-    public TenantUserProvisioningService(MasterDbContext masterDbContext, UserManager<ApplicationUser> userManager)
+    public TenantUserProvisioningService(
+        MasterDbContext masterDbContext,
+        UserManager<ApplicationUser> userManager,
+        IdentityErrorLocalizer errorLocalizer)
     {
         _masterDbContext = masterDbContext;
         _userManager = userManager;
+        _errorLocalizer = errorLocalizer;
     }
 
     public async Task<Guid> CreateOwnerAsync(
@@ -68,10 +73,7 @@ public class TenantUserProvisioningService : ITenantUserProvisioningService
 
         if (!createResult.Succeeded)
         {
-            var errors = string.Join(
-                "; ",
-                createResult.Errors.Select(
-                    x => x.Description));
+            var errors = _errorLocalizer.Localize(createResult.Errors);
 
             throw new InvalidOperationException(
                 $"No fue posible crear el usuario: {errors}");

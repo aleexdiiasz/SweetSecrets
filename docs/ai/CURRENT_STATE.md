@@ -1,5 +1,18 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-020 - Change Password / Account UI
+
+TEN-020 implementa /cuenta para TENANT_OWNER, con consulta segura de nombre y correo mediante GET /api/auth/account y cambio de contrasena mediante POST /api/auth/change-password.
+
+El usuario se deriva del NameIdentifier autenticado. AccountService opera sobre Identity en MASTER y no acepta UserId, TenantId ni datos de conexion desde Web. Identity valida la contrasena actual y la politica de la nueva. IdentityErrorLocalizer centraliza los mensajes en espanol para Change Password, Reset y Register.
+
+Despues de ChangePasswordAsync, IdentityAccountSessionRefresher reemite la cookie con sus propiedades actuales y conserva session_id y tenant_id. La sesion actual permanece activa con el SecurityStamp nuevo.
+
+La UI incluye carga, reintento, guardado, exito, error, confirmacion basica y CSS responsive aproximadamente a 390 px. Documentacion: docs/technical/ACCOUNT_UI.md.
+
+PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR del flujo completo y responsive aproximadamente a 390 px.
+
+---
 ## Actualizacion TEN-019 - Password Recovery & Reset
 
 TEN-019 implementa los endpoints publicos POST /api/auth/forgot-password y POST /api/auth/reset-password sobre ASP.NET Core Identity en MASTER. La solicitud inicial usa una respuesta generica equivalente para correos existentes, inexistentes, inactivos o bloqueados y no expone tokens ni informacion tenant.

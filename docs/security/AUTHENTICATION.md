@@ -220,10 +220,15 @@ TEN-019 agrega:
 
 Los tokens son generados y validados por ASP.NET Core Identity, tienen vigencia de una hora y la solicitud inicial utiliza una respuesta genérica para evitar enumeración de usuarios.
 
+## Mi cuenta y cambio de contraseña
+
+TEN-020 agrega `/cuenta`, `GET /api/auth/account` y `POST /api/auth/change-password` para `TENANT_OWNER`. El usuario objetivo se resuelve desde la identidad autenticada y la contraseña se cambia con ASP.NET Core Identity sobre MASTER.
+
+Después de un cambio correcto se reemite la cookie conservando sus propiedades y los claims de tenant y sesión. La sesión actual continúa activa con el `SecurityStamp` actualizado.
+
 ## Pendiente
 
 - confirmación de correo;
-- cambio de contraseña para usuarios autenticados;
 - expiración avanzada de sesiones;
 - invalidación periódica basada en SecurityStamp;
 - rate limiting de login;
