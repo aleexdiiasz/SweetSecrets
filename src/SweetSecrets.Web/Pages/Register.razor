@@ -80,7 +80,9 @@
                 return;
             }
 
-            Navigation.NavigateTo("/login?registered=true", replace: true);
+            Navigation.NavigateTo(
+                $"/confirm-email?email={Uri.EscapeDataString(result.Response!.Email)}&registered=true",
+                replace: true);
         }
         finally
         {

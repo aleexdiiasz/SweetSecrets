@@ -14,17 +14,20 @@ public class AuthController : ControllerBase
 {
     private readonly SweetSecrets.Application.Common.Authentication.IAuthenticationService _authenticationService;
     private readonly IAccountService _accountService;
+    private readonly IEmailConfirmationService _emailConfirmationService;
     private readonly SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService _passwordRecoveryService;
     private readonly ISelfRegistrationService _selfRegistrationService;
 
     public AuthController(
         SweetSecrets.Application.Common.Authentication.IAuthenticationService authenticationService,
         IAccountService accountService,
+        IEmailConfirmationService emailConfirmationService,
         SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService passwordRecoveryService,
         ISelfRegistrationService selfRegistrationService)
     {
         _authenticationService = authenticationService;
         _accountService = accountService;
+        _emailConfirmationService = emailConfirmationService;
         _passwordRecoveryService = passwordRecoveryService;
         _selfRegistrationService = selfRegistrationService;
     }
@@ -168,6 +171,47 @@ public class AuthController : ControllerBase
         return Ok(new ResetPasswordResponse
         {
             Message = "Tu contraseña se actualizó correctamente."
+        });
+    }
+
+    [HttpPost("resend-confirmation")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ResendEmailConfirmationResponse>> ResendConfirmation(
+        ResendEmailConfirmationRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _emailConfirmationService.RequestResendAsync(request.Email, cancellationToken);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
+        return Ok(new ResendEmailConfirmationResponse
+        {
+            Message = "Si existe una cuenta pendiente asociada a este correo, recibirás instrucciones para confirmarla."
+        });
+    }
+
+    [HttpPost("confirm-email")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ConfirmEmailResponse>> ConfirmEmail(
+        ConfirmEmailRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _emailConfirmationService.ConfirmAsync(
+            request.Email,
+            request.Token,
+            cancellationToken);
+
+        if (!result.Succeeded)
+            return BadRequest(new { message = result.ErrorMessage });
+
+        return Ok(new ConfirmEmailResponse
+        {
+            Message = "Tu correo electrónico se confirmó correctamente. Ya puedes iniciar sesión."
         });
     }
 

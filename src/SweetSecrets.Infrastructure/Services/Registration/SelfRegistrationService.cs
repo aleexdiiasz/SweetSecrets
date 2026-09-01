@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using SweetSecrets.Application.Common.Registration;
+using SweetSecrets.Application.Common.Authentication;
 using SweetSecrets.Application.Common.Tenancy;
 using SweetSecrets.Infrastructure.Identity;
 
@@ -12,17 +13,20 @@ public sealed class SelfRegistrationService
     private readonly ITenantProvisioningService _tenantProvisioningService;
     private readonly ITenantUserProvisioningService _tenantUserProvisioningService;
     private readonly ITenantRegistryService _tenantRegistryService;
+    private readonly IEmailConfirmationService _emailConfirmationService;
 
     public SelfRegistrationService(
         UserManager<ApplicationUser> userManager,
         ITenantProvisioningService tenantProvisioningService,
         ITenantUserProvisioningService tenantUserProvisioningService,
-        ITenantRegistryService tenantRegistryService)
+        ITenantRegistryService tenantRegistryService,
+        IEmailConfirmationService emailConfirmationService)
     {
         _userManager = userManager;
         _tenantProvisioningService = tenantProvisioningService;
         _tenantUserProvisioningService = tenantUserProvisioningService;
         _tenantRegistryService = tenantRegistryService;
+        _emailConfirmationService = emailConfirmationService;
     }
 
     public async Task<SelfRegistrationResult> RegisterAsync(SelfRegistrationCommand command, CancellationToken cancellationToken = default)
@@ -57,6 +61,8 @@ public sealed class SelfRegistrationService
                     command.FullName.Trim(),
                     command.Password,
                     cancellationToken);
+
+            await _emailConfirmationService.SendForUserAsync(userId, cancellationToken);
 
             return new SelfRegistrationResult(
                 userId,

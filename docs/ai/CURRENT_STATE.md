@@ -1,5 +1,18 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-021 - Email Infrastructure + Email Confirmation
+
+TEN-021 generaliza el envio transaccional mediante ITransactionalEmailSender. Development escribe mensajes sensibles en %TEMP%/SweetSecrets/email y Production queda con adapter no configurado hasta seleccionar proveedor y URLs publicas. Password Recovery reutiliza esta infraestructura.
+
+El registro genera un token Identity de confirmacion, lo codifica URL-safe y dirige a /confirm-email. Se agregan POST /api/auth/resend-confirmation y POST /api/auth/confirm-email con respuesta anti-enumeracion para reenvio.
+
+Las cuentas creadas desde 2026-09-01T00:00:00Z requieren EmailConfirmed antes del login. Las cuentas legacy anteriores no se bloquean ni se modifican. Login valida primero la contrasena y despues devuelve EMAIL_NOT_CONFIRMED, evitando enumeracion con credenciales incorrectas.
+
+La UI publica maneja registro completado, confirmacion, token invalido o expirado, reenvio, loading, error, exito y responsive aproximadamente a 390 px. Documentacion: docs/technical/EMAIL_CONFIRMATION.md.
+
+PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR y proveedor transaccional Production.
+
+---
 ## Actualizacion TEN-020 - Change Password / Account UI
 
 TEN-020 implementa /cuenta para TENANT_OWNER, con consulta segura de nombre y correo mediante GET /api/auth/account y cambio de contrasena mediante POST /api/auth/change-password.
@@ -17,7 +30,7 @@ PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR del flujo completo y responsive aproxima
 
 TEN-019 implementa los endpoints publicos POST /api/auth/forgot-password y POST /api/auth/reset-password sobre ASP.NET Core Identity en MASTER. La solicitud inicial usa una respuesta generica equivalente para correos existentes, inexistentes, inactivos o bloqueados y no expone tokens ni informacion tenant.
 
-Los tokens se generan y validan con Identity y Data Protection, se codifican para URL y vencen en una hora. En Development, la entrega se realiza mediante una bandeja local temporal en %TEMP%/SweetSecrets/password-recovery. Production conserva una abstraccion sin proveedor configurado; la seleccion e implementacion del proveedor de correo sigue pendiente.
+Los tokens se generan y validan con Identity y Data Protection, se codifican para URL y vencen en una hora. En Development, la entrega se realiza mediante una bandeja local temporal en %TEMP%/SweetSecrets/email. Production conserva una abstraccion sin proveedor configurado; la seleccion e implementacion del proveedor de correo sigue pendiente.
 
 La Web agrega las rutas publicas /forgot-password y /reset-password, estados de envio y error, validacion de confirmacion y estilos responsive aproximadamente a 390 px. Login enlaza al inicio de recuperacion.
 

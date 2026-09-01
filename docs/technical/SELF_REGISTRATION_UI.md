@@ -25,11 +25,12 @@ No se agregaron endpoints ni se modificó el backend.
 → TenantProvisioningService
 → PostgreSQL tenant + migraciones + seed
 → TenantUserProvisioningService
-→ TENANT_OWNER
-→ /login?registered=true
+→ TENANT_OWNER con EmailConfirmed=false
+→ email transaccional de confirmación
+→ /confirm-email?registered=true
 ```
 
-El endpoint no autentica automáticamente. Después de un registro correcto, Login muestra una confirmación y el usuario inicia sesión con sus nuevas credenciales.
+El endpoint no autentica automáticamente. Después de un registro correcto, la UI dirige a la confirmación de correo. Las cuentas nuevas deben confirmar el enlace antes de iniciar sesión.
 
 ## Interfaz
 
@@ -69,7 +70,6 @@ La prueba debe utilizar datos nuevos controlados y no modificar ni eliminar tena
 
 ## Limitaciones
 
-- No hay confirmación de correo.
 - No hay recuperación ni cambio de contraseña.
 - El registro no inicia sesión automáticamente.
 - No implementa `TENANT_USER`, invitaciones ni administración de usuarios.

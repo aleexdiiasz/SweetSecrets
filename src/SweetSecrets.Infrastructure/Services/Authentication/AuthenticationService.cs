@@ -15,17 +15,20 @@ public class AuthenticationService
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IUserSessionService _sessionService;
     private readonly IPlatformAuditService _auditService;
+    private readonly EmailConfirmationLoginPolicy _emailConfirmationPolicy;
 
     public AuthenticationService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IUserSessionService sessionService,
-        IPlatformAuditService auditService)
+        IPlatformAuditService auditService,
+        EmailConfirmationLoginPolicy emailConfirmationPolicy)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _sessionService = sessionService;
         _auditService = auditService;
+        _emailConfirmationPolicy = emailConfirmationPolicy;
     }
 
     public async Task<AuthenticationResult> LoginAsync(
@@ -107,6 +110,16 @@ public class AuthenticationService
                 cancellationToken);
 
             return InvalidCredentials();
+        }
+
+        if (_emailConfirmationPolicy.RequiresConfirmation(user))
+        {
+            return new AuthenticationResult
+            {
+                Succeeded = false,
+                ErrorCode = "EMAIL_NOT_CONFIRMED",
+                Message = "Debes confirmar tu correo electrónico antes de iniciar sesión."
+            };
         }
 
         var sessionId =

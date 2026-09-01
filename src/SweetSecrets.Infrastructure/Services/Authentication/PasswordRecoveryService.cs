@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SweetSecrets.Application.Common.Authentication;
+using SweetSecrets.Application.Common.Email;
 using SweetSecrets.Infrastructure.Identity;
 
 namespace SweetSecrets.Infrastructure.Services.Authentication;
@@ -11,20 +12,20 @@ namespace SweetSecrets.Infrastructure.Services.Authentication;
 public sealed class PasswordRecoveryService : IPasswordRecoveryService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IPasswordResetNotificationService _notificationService;
+    private readonly ITransactionalEmailSender _emailSender;
     private readonly PasswordRecoveryOptions _options;
     private readonly ILogger<PasswordRecoveryService> _logger;
     private readonly IdentityErrorLocalizer _errorLocalizer;
 
     public PasswordRecoveryService(
         UserManager<ApplicationUser> userManager,
-        IPasswordResetNotificationService notificationService,
+        ITransactionalEmailSender emailSender,
         IOptions<PasswordRecoveryOptions> options,
         ILogger<PasswordRecoveryService> logger,
         IdentityErrorLocalizer errorLocalizer)
     {
         _userManager = userManager;
-        _notificationService = notificationService;
+        _emailSender = emailSender;
         _options = options.Value;
         _logger = logger;
         _errorLocalizer = errorLocalizer;
@@ -47,7 +48,13 @@ public sealed class PasswordRecoveryService : IPasswordRecoveryService
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
             var resetUri = BuildResetUri(normalizedEmail, encodedToken);
 
-            await _notificationService.SendAsync(normalizedEmail, resetUri, cancellationToken);
+            await _emailSender.SendAsync(
+                new TransactionalEmailMessage(
+                    normalizedEmail,
+                    "Restablece tu contraseña de SweetSecrets",
+                    $"Abre este enlace para restablecer tu contraseña:{Environment.NewLine}{resetUri}",
+                    "password-reset"),
+                cancellationToken);
         }
         catch (Exception exception)
         {

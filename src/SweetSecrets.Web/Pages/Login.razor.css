@@ -47,6 +47,8 @@
     font-size: .88rem;
 }
 
+.confirmation-link{display:block;margin:-8px 0 16px;color:#7c3f24;font-size:.88rem;font-weight:600;text-align:center}
+
     .form-control:focus {
         outline: 2px solid #111827;
         outline-offset: 1px;

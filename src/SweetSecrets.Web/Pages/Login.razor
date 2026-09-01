@@ -55,6 +55,10 @@
             <div class="login-error" role="alert">
                 @_errorMessage
             </div>
+            @if (_emailNotConfirmed)
+            {
+                <a class="confirmation-link" href="@ConfirmationUrl">Reenviar correo de confirmación</a>
+            }
         }
 
         <button type="submit"
@@ -84,6 +88,9 @@
     private bool _isSubmitting;
 
     private string? _errorMessage;
+    private bool _emailNotConfirmed;
+
+    private string ConfirmationUrl => $"/confirm-email?email={Uri.EscapeDataString(_model.Email)}";
 
     [SupplyParameterFromQuery(Name = "registered")]
     public bool Registered { get; set; }
@@ -96,6 +103,7 @@
         }
 
         _errorMessage = null;
+        _emailNotConfirmed = false;
 
         if (string.IsNullOrWhiteSpace(_model.Email) ||
             string.IsNullOrWhiteSpace(_model.Password))
@@ -118,6 +126,7 @@
                 _errorMessage =
                     result.ErrorMessage
                     ?? "No fue posible iniciar sesión.";
+                _emailNotConfirmed = result.ErrorCode == "EMAIL_NOT_CONFIRMED";
 
                 return;
             }
