@@ -62,6 +62,20 @@ public class UserSessionService : IUserSessionService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<bool> ValidateAndUpdateActivityAsync(
+        Guid sessionId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _dbContext.UserSessions.FirstOrDefaultAsync(
+            x => x.Id == sessionId && x.UserId == userId && x.IsActive,
+            cancellationToken);
+        if (session is null) return false;
+        session.LastActivityAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task EndSessionAsync(
         Guid sessionId,
         string endReason,

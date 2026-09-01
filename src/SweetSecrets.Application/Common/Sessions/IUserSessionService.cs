@@ -12,6 +12,11 @@ public interface IUserSessionService
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
+    Task<bool> ValidateAndUpdateActivityAsync(
+        Guid sessionId,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
     Task EndSessionAsync(
         Guid sessionId,
         string endReason,

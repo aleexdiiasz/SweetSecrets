@@ -1,5 +1,17 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-026 - PLATFORM_ADMIN Users & Sessions
+
+TEN-026 habilita /admin/users, detalle y /admin/sessions sobre MASTER, con busqueda y filtros server-side, paginacion, rol, tenant, estado de cuenta, confirmacion de correo, actividad y presencia derivada.
+
+Se reutiliza el bloqueo existente: IsBlocked, SecurityStamp, cierre de sesiones y auditoria USER_BLOCKED/USER_UNBLOCKED. Bloquear una identidad no suspende ni reactiva su tenant. Las cuentas PLATFORM_ADMIN son solo lectura y el actor no puede autobloquearse.
+
+La revocacion es real: UserActivityMiddleware valida session_id activo y perteneciente al usuario antes de continuar; una sesion cerrada por bloqueo o SESSION_REVOKED produce sign-out y 401 en la siguiente peticion. No se permiten revocaciones de sesiones PLATFORM_ADMIN ni de la sesion administrativa actual. Online conserva sesion activa + LastActivityAt dentro de 5 minutos, sin SignalR.
+
+Todo opera exclusivamente sobre MASTER y no usa ITenantDbContextFactory. No se exponen PasswordHash, stamps, tokens, cookies, DatabaseName ni ConnectionString. Documentacion: docs/technical/PLATFORM_ADMIN_USERS_SESSIONS.md. PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR con MASTER real y responsive aproximadamente a 390 px.
+
+---
+
 ## Actualizacion TEN-025 - PLATFORM_ADMIN Tenant Management
 
 TEN-025 implementa /admin/tenants y detalle con busqueda/filtro server-side sobre MASTER, owner principal, fechas y auditoria reciente. Agrega suspension Active -> Suspended y reactivacion Suspended -> Active con actualizacion condicional y auditoria del actor autenticado.

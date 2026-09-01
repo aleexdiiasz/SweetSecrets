@@ -134,6 +134,8 @@ Campos funcionales:
 - IsActive;
 - EndReason.
 
+TEN-026 agrega consulta administrativa paginada y revocación real. Antes de actualizar actividad, `UserActivityMiddleware` verifica que el `session_id` pertenezca al usuario y continúe activo en MASTER. Una sesión cerrada por logout, bloqueo o `SESSION_REVOKED` provoca sign-out y la siguiente petición queda anónima; una cookie no conserva acceso sólo por seguir presente en el navegador.
+
 ## Actividad
 
 UserActivityMiddleware actualiza actividad de usuarios autenticados.
@@ -152,6 +154,8 @@ Actualmente se considera online cuando:
 - LastActivityAt está dentro de la ventana configurada.
 
 La consulta administrativa utiliza una ventana de 5 minutos.
+
+No representa presencia en tiempo real y no utiliza SignalR.
 
 ## Bloqueo administrativo
 
@@ -174,13 +178,21 @@ Cuando PLATFORM_ADMIN desbloquea:
 
 GET /api/admin/users
 
+GET /api/admin/users/{userId}
+
 POST /api/admin/users/{userId}/block
 
 POST /api/admin/users/{userId}/unblock
 
+GET /api/admin/users/sessions
+
+POST /api/admin/users/sessions/{sessionId}/revoke
+
 Requieren:
 
 PLATFORM_ADMIN
+
+La administración es MASTER-only. Las cuentas `PLATFORM_ADMIN` se muestran como solo lectura: no se permite bloquearlas/desbloquearlas ni revocar sus sesiones en TEN-026. El administrador tampoco puede bloquearse ni revocar accidentalmente su sesión actual.
 
 ## Seguridad de contraseñas
 

@@ -2,7 +2,17 @@
 
 public interface IPlatformUserQueryService
 {
-    Task<IReadOnlyList<PlatformUserSummary>> GetUsersAsync(
+    Task<PlatformUserPage> SearchAsync(
+        PlatformUserSearch search,
         TimeSpan onlineWindow,
+        CancellationToken cancellationToken = default);
+
+    Task<PlatformUserDetail?> GetAsync(
+        Guid userId,
+        TimeSpan onlineWindow,
+        CancellationToken cancellationToken = default);
+
+    Task<PlatformUserSessionPage> SearchSessionsAsync(
+        PlatformUserSessionSearch search,
         CancellationToken cancellationToken = default);
 }
