@@ -3,6 +3,9 @@ using SweetSecrets.Application.Common.Auditing;
 using SweetSecrets.Application.Common.Sessions;
 using SweetSecrets.Application.Common.Users;
 using SweetSecrets.Infrastructure.Identity;
+using SweetSecrets.Application.Common.Security;
+using SweetSecrets.Infrastructure.Data.Master;
+using Microsoft.EntityFrameworkCore;
 
 namespace SweetSecrets.Infrastructure.Services.Users;
 
@@ -11,18 +14,21 @@ public class PlatformUserAdminService : IPlatformUserAdminService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserSessionService _userSessionService;
     private readonly IPlatformAuditService _auditService;
+    private readonly MasterDbContext _dbContext;
 
     public PlatformUserAdminService(
         UserManager<ApplicationUser> userManager,
         IUserSessionService userSessionService,
-        IPlatformAuditService auditService)
+        IPlatformAuditService auditService,
+        MasterDbContext dbContext)
     {
         _userManager = userManager;
         _userSessionService = userSessionService;
         _auditService = auditService;
+        _dbContext = dbContext;
     }
 
-    public async Task BlockUserAsync(
+    public async Task<PlatformUserChangeOutcome> BlockUserAsync(
         Guid userId,
         Guid performedByUserId,
         string? ipAddress,
@@ -32,16 +38,18 @@ public class PlatformUserAdminService : IPlatformUserAdminService
         var user = await _userManager.FindByIdAsync(userId.ToString());
 
         if (user is null)
-            throw new InvalidOperationException("Usuario no encontrado.");
+            return PlatformUserChangeOutcome.NotFound;
 
         if (user.Id == performedByUserId)
         {
-            throw new InvalidOperationException(
-                "El administrador no puede bloquear su propia cuenta.");
+            return PlatformUserChangeOutcome.Forbidden;
         }
 
+        if (await _userManager.IsInRoleAsync(user, PlatformRoles.PlatformAdmin))
+            return PlatformUserChangeOutcome.Forbidden;
+
         if (user.IsBlocked)
-            return;
+            return PlatformUserChangeOutcome.AlreadyInState;
 
         user.IsBlocked = true;
 
@@ -85,9 +93,11 @@ public class PlatformUserAdminService : IPlatformUserAdminService
                 UserAgent = userAgent
             },
             cancellationToken);
+
+        return PlatformUserChangeOutcome.Success;
     }
 
-    public async Task UnblockUserAsync(
+    public async Task<PlatformUserChangeOutcome> UnblockUserAsync(
         Guid userId,
         Guid performedByUserId,
         string? ipAddress,
@@ -97,10 +107,13 @@ public class PlatformUserAdminService : IPlatformUserAdminService
         var user = await _userManager.FindByIdAsync(userId.ToString());
 
         if (user is null)
-            throw new InvalidOperationException("Usuario no encontrado.");
+            return PlatformUserChangeOutcome.NotFound;
+
+        if (await _userManager.IsInRoleAsync(user, PlatformRoles.PlatformAdmin))
+            return PlatformUserChangeOutcome.Forbidden;
 
         if (!user.IsBlocked)
-            return;
+            return PlatformUserChangeOutcome.AlreadyInState;
 
         user.IsBlocked = false;
 
@@ -145,5 +158,41 @@ public class PlatformUserAdminService : IPlatformUserAdminService
                 UserAgent = userAgent
             },
             cancellationToken);
+
+        return PlatformUserChangeOutcome.Success;
+    }
+
+    public async Task<PlatformSessionRevokeOutcome> RevokeSessionAsync(
+        Guid sessionId,
+        Guid performedByUserId,
+        Guid? performedFromSessionId,
+        string? ipAddress,
+        string? userAgent,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _dbContext.UserSessions.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == sessionId, cancellationToken);
+        if (session is null) return PlatformSessionRevokeOutcome.NotFound;
+        if (!session.IsActive) return PlatformSessionRevokeOutcome.AlreadyEnded;
+        if (session.Id == performedFromSessionId) return PlatformSessionRevokeOutcome.Forbidden;
+
+        var target = await _userManager.FindByIdAsync(session.UserId.ToString());
+        if (target is null) return PlatformSessionRevokeOutcome.NotFound;
+        if (await _userManager.IsInRoleAsync(target, PlatformRoles.PlatformAdmin))
+            return PlatformSessionRevokeOutcome.Forbidden;
+
+        await _userSessionService.EndSessionAsync(sessionId, "SESSION_REVOKED", cancellationToken);
+        await _auditService.RegisterAsync(new PlatformAuditEntry
+        {
+            UserId = performedByUserId,
+            TenantId = target.TenantId,
+            Action = "SESSION_REVOKED",
+            Entity = "USER",
+            EntityId = target.Id.ToString(),
+            Description = $"Se revocó una sesión de {target.Email}.",
+            IpAddress = ipAddress,
+            UserAgent = userAgent
+        }, cancellationToken);
+        return PlatformSessionRevokeOutcome.Success;
     }
 }

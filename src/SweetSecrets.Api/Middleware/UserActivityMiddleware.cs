@@ -17,14 +17,16 @@ public class UserActivityMiddleware
     public async Task InvokeAsync(
         HttpContext context,
         IUserSessionService sessionService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager)
     {
         if (context.User.Identity?.IsAuthenticated == true)
         {
             await UpdateActivityAsync(
                 context,
                 sessionService,
-                userManager);
+                userManager,
+                signInManager);
         }
 
         await _next(context);
@@ -33,7 +35,8 @@ public class UserActivityMiddleware
     private static async Task UpdateActivityAsync(
         HttpContext context,
         IUserSessionService sessionService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager)
     {
         var sessionValue = context.User.FindFirstValue("session_id");
 
@@ -44,7 +47,12 @@ public class UserActivityMiddleware
             return;
         }
 
-        await sessionService.UpdateActivityAsync(sessionId, context.RequestAborted);
+        if (!await sessionService.ValidateAndUpdateActivityAsync(sessionId, userId, context.RequestAborted))
+        {
+            await signInManager.SignOutAsync();
+            context.User = new ClaimsPrincipal(new ClaimsIdentity());
+            return;
+        }
 
         var user = await userManager.FindByIdAsync(userId.ToString());
 

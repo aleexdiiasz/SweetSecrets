@@ -77,5 +77,6 @@ builder.Services.AddScoped<SettingsApiClient>();
 builder.Services.AddScoped<DashboardApiClient>();
 
 builder.Services.AddScoped<TenantsAdminApiClient>();
+builder.Services.AddScoped<UsersAdminApiClient>();
 
 await builder.Build().RunAsync();

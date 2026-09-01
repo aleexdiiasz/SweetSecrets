@@ -21,7 +21,7 @@ El login devuelve los roles obtenidos por ASP.NET Core Identity. `AuthenticatedA
 
 Incluye sidebar diferenciado, encabezado de plataforma, correo autenticado y logout. No ofrece “Mi cuenta”: TEN-020 y sus endpoints continúan limitados a `TENANT_OWNER`.
 
-Inicio y Tenants son rutas administrativas activas. TEN-025 implementa `/admin/tenants` y su detalle; Usuarios, Sesiones y Auditoría continúan pendientes. Detalle: `docs/technical/PLATFORM_ADMIN_TENANTS.md`.
+Inicio, Tenants, Usuarios y Sesiones son rutas administrativas activas. TEN-025 implementa `/admin/tenants`; TEN-026 implementa `/admin/users`, detalle y `/admin/sessions`. Auditoría conserva por ahora sus vistas recientes dentro de los detalles y el módulo global continúa pendiente. Detalles: `docs/technical/PLATFORM_ADMIN_TENANTS.md` y `docs/technical/PLATFORM_ADMIN_USERS_SESSIONS.md`.
 
 ## Seguridad y multi-tenancy
 
@@ -37,6 +37,6 @@ El layout cambia a estructura vertical en pantallas pequeñas. Header, identidad
 
 ## Pruebas
 
-Las pruebas cubren destinos post-login para ambos roles y ausencia de rol, autorización `PLATFORM_ADMIN` en APIs administrativas existentes y permanencia de `TENANT_OWNER` en APIs operacionales tenant.
+Las pruebas cubren destinos post-login, autorización `PLATFORM_ADMIN`, permanencia de `TENANT_OWNER` en APIs tenant y los flujos administrativos de usuarios/sesiones.
 
 PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR: login con ambos roles, rechazo cruzado, recarga directa, logout administrativo y responsive aproximadamente a 390 px.
