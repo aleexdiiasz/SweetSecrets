@@ -135,6 +135,10 @@ builder.Services.AddScoped<IPlatformUserAdminService, PlatformUserAdminService>(
 builder.Services.AddScoped<IPlatformUserQueryService, PlatformUserQueryService>();
 
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IdentityErrorLocalizer>();
+
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IAccountSessionRefresher, IdentityAccountSessionRefresher>();
 
 builder.Services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
 

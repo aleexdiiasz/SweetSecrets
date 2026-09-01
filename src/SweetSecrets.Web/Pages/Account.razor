@@ -1,0 +1,142 @@
+@page "/cuenta"
+@attribute [Authorize(Roles = "TENANT_OWNER")]
+
+@using SweetSecrets.Contracts.Auth
+@using SweetSecrets.Web.Services.Auth
+
+@inject AuthApiClient AuthApiClient
+
+<PageTitle>Mi cuenta - SweetSecrets</PageTitle>
+
+<div class="account-page">
+    <header class="page-header">
+        <p class="eyebrow">Cuenta</p>
+        <h1>Mi cuenta</h1>
+        <p>Consulta tu información y actualiza tu contraseña.</p>
+    </header>
+
+    @if (_isLoading)
+    {
+        <section class="account-card status-card" aria-live="polite">Cargando información de la cuenta...</section>
+    }
+    else if (_loadError is not null)
+    {
+        <section class="account-card error-message" role="alert">
+            <p>@_loadError</p>
+            <button type="button" class="secondary-button" @onclick="LoadAccountAsync">Reintentar</button>
+        </section>
+    }
+    else
+    {
+        <div class="account-grid">
+            <section class="account-card">
+                <h2>Información personal</h2>
+                <dl class="account-details">
+                    <div><dt>Nombre</dt><dd>@_account?.FullName</dd></div>
+                    <div><dt>Correo electrónico</dt><dd>@_account?.Email</dd></div>
+                </dl>
+            </section>
+
+            <section class="account-card">
+                <h2>Cambiar contraseña</h2>
+                <p class="card-description">La nueva contraseña debe cumplir la política de seguridad de SweetSecrets.</p>
+
+                <EditForm Model="_password" OnValidSubmit="ChangePasswordAsync">
+                    <div class="form-group">
+                        <label for="current-password">Contraseña actual</label>
+                        <InputText id="current-password" class="form-control" type="password" autocomplete="current-password" @bind-Value="_password.CurrentPassword" />
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Nueva contraseña</label>
+                        <InputText id="new-password" class="form-control" type="password" autocomplete="new-password" @bind-Value="_password.NewPassword" />
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirmar nueva contraseña</label>
+                        <InputText id="confirm-password" class="form-control" type="password" autocomplete="new-password" @bind-Value="_confirmation" />
+                    </div>
+
+                    @if (_changeError is not null)
+                    {
+                        <div class="error-message" role="alert">@_changeError</div>
+                    }
+                    @if (_successMessage is not null)
+                    {
+                        <div class="success-message" role="status">@_successMessage</div>
+                    }
+
+                    <button type="submit" class="primary-button" disabled="@_isSaving">
+                        @(_isSaving ? "Guardando..." : "Cambiar contraseña")
+                    </button>
+                </EditForm>
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    private AccountResponse? _account;
+    private ChangePasswordRequest _password = new();
+    private string _confirmation = string.Empty;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _loadError;
+    private string? _changeError;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAccountAsync();
+
+    private async Task LoadAccountAsync()
+    {
+        _isLoading = true;
+        _loadError = null;
+        try
+        {
+            var result = await AuthApiClient.GetAccountAsync();
+            if (result.Succeeded)
+                _account = result.Account;
+            else
+                _loadError = result.ErrorMessage ?? "No fue posible cargar la cuenta.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (_isSaving)
+            return;
+
+        _successMessage = null;
+        _changeError = string.IsNullOrWhiteSpace(_password.CurrentPassword)
+            ? "La contraseña actual es obligatoria."
+            : string.IsNullOrWhiteSpace(_password.NewPassword)
+                ? "La nueva contraseña es obligatoria."
+                : !string.Equals(_password.NewPassword, _confirmation, StringComparison.Ordinal)
+                    ? "La confirmación no coincide con la nueva contraseña."
+                    : null;
+
+        if (_changeError is not null)
+            return;
+
+        _isSaving = true;
+        try
+        {
+            var result = await AuthApiClient.ChangePasswordAsync(_password);
+            if (!result.Succeeded)
+            {
+                _changeError = result.ErrorMessage ?? "No fue posible cambiar la contraseña.";
+                return;
+            }
+
+            _successMessage = result.Message;
+            _password = new ChangePasswordRequest();
+            _confirmation = string.Empty;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

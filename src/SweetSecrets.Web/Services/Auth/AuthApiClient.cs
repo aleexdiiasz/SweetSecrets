@@ -177,6 +177,52 @@ public sealed class AuthApiClient
         }
     }
 
+    public async Task<AccountAttemptResult> GetAccountAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.GetAsync("api/auth/account", cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorMessageAsync(response, "No fue posible cargar la información de la cuenta.", cancellationToken);
+                return AccountAttemptResult.Failed(error);
+            }
+
+            var account = await response.Content.ReadFromJsonAsync<AccountResponse>(cancellationToken: cancellationToken);
+            return account is null
+                ? AccountAttemptResult.Failed("No fue posible validar la respuesta del servidor.")
+                : AccountAttemptResult.Success(account);
+        }
+        catch (HttpRequestException)
+        {
+            return AccountAttemptResult.Failed("No fue posible conectar con el servidor.");
+        }
+    }
+
+    public async Task<ChangePasswordAttemptResult> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync("api/auth/change-password", request, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorMessageAsync(response, "No fue posible cambiar la contraseña.", cancellationToken);
+                return ChangePasswordAttemptResult.Failed(error);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ChangePasswordResponse>(cancellationToken: cancellationToken);
+            return result is null
+                ? ChangePasswordAttemptResult.Failed("No fue posible validar la respuesta del servidor.")
+                : ChangePasswordAttemptResult.Success(result.Message);
+        }
+        catch (HttpRequestException)
+        {
+            return ChangePasswordAttemptResult.Failed("No fue posible conectar con el servidor.");
+        }
+    }
+
     private static Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         ReadErrorMessageAsync(response, "Correo o contraseña incorrectos.", cancellationToken);
 
@@ -250,4 +296,16 @@ public sealed record PasswordRecoveryAttemptResult(bool Succeeded, string? Messa
 
     public static PasswordRecoveryAttemptResult Failed(string message) =>
         new(false, null, message);
+}
+
+public sealed record AccountAttemptResult(bool Succeeded, AccountResponse? Account, string? ErrorMessage)
+{
+    public static AccountAttemptResult Success(AccountResponse account) => new(true, account, null);
+    public static AccountAttemptResult Failed(string message) => new(false, null, message);
+}
+
+public sealed record ChangePasswordAttemptResult(bool Succeeded, string? Message, string? ErrorMessage)
+{
+    public static ChangePasswordAttemptResult Success(string message) => new(true, message, null);
+    public static ChangePasswordAttemptResult Failed(string message) => new(false, null, message);
 }

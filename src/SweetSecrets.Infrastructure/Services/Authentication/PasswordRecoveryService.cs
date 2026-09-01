@@ -14,17 +14,20 @@ public sealed class PasswordRecoveryService : IPasswordRecoveryService
     private readonly IPasswordResetNotificationService _notificationService;
     private readonly PasswordRecoveryOptions _options;
     private readonly ILogger<PasswordRecoveryService> _logger;
+    private readonly IdentityErrorLocalizer _errorLocalizer;
 
     public PasswordRecoveryService(
         UserManager<ApplicationUser> userManager,
         IPasswordResetNotificationService notificationService,
         IOptions<PasswordRecoveryOptions> options,
-        ILogger<PasswordRecoveryService> logger)
+        ILogger<PasswordRecoveryService> logger,
+        IdentityErrorLocalizer errorLocalizer)
     {
         _userManager = userManager;
         _notificationService = notificationService;
         _options = options.Value;
         _logger = logger;
+        _errorLocalizer = errorLocalizer;
     }
 
     public async Task RequestResetAsync(string email, CancellationToken cancellationToken = default)
@@ -87,15 +90,7 @@ public sealed class PasswordRecoveryService : IPasswordRecoveryService
         if (result.Succeeded)
             return PasswordResetResult.Success();
 
-        if (result.Errors.Any(error => error.Code.Contains("InvalidToken", StringComparison.OrdinalIgnoreCase)))
-            return PasswordResetResult.Failed("El enlace de recuperación no es válido o ya expiró.");
-
-        var errors = string.Join(" ", result.Errors.Select(error => error.Description));
-
-        return PasswordResetResult.Failed(
-            string.IsNullOrWhiteSpace(errors)
-                ? "La nueva contraseña no cumple los requisitos de seguridad."
-                : errors);
+        return PasswordResetResult.Failed(_errorLocalizer.Localize(result.Errors));
     }
 
     private Uri BuildResetUri(string email, string token)
