@@ -1,5 +1,14 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-028 - PLATFORM_ADMIN Audit Explorer
+
+TEN-028 habilita /admin/audit y /admin/audit/{id} como explorador global, historico y de solo lectura para PLATFORM_ADMIN. Reutiliza PlatformAuditLog e IPlatformAuditService; agrega una capa de consulta separada exclusivamente sobre MasterDbContext, sin TenantDbContext ni recorrido de bases tenant.
+
+El listado ofrece busqueda server-side, filtros por accion, fechas UTC, tenant, actor y usuario objetivo, orden CreatedAt descendente y paginacion real con maximo 50. El detalle conserva eventos aunque falten relaciones y muestra solo contexto seguro. OldValues/NewValues quedan excluidos porque son texto arbitrario; tampoco se exponen passwords, hashes, stamps, cookies, tokens, DatabaseName, ConnectionString, secretos ni headers completos.
+
+La UI integra navegacion, loading, error, reintento, vacio, badges, paginacion y responsive aproximadamente a 390 px. Pruebas Npgsql validan que joins, filtros, orden, Skip y Take son traducibles sin evaluacion cliente. Documentacion: docs/technical/PLATFORM_ADMIN_AUDIT.md. PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR con MASTER real.
+
+---
 ## Actualizacion TEN-027 - PLATFORM_ADMIN Platform Dashboard
 
 TEN-027 convierte /admin en un dashboard operacional real y agrega GET /api/admin/dashboard, protegido exclusivamente para PLATFORM_ADMIN. El contrato agrega totales y distribucion de tenants, usuarios por rol, bloqueados, correos pendientes de confirmacion, sesiones activas, usuarios online y listas recientes de tenants, usuarios y auditoria.

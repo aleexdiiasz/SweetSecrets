@@ -142,6 +142,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<MasterDataInitializer>();
 
 builder.Services.AddScoped<IPlatformAuditService, PlatformAuditService>();
+builder.Services.AddScoped<IPlatformAuditQueryService, PlatformAuditQueryService>();
 
 builder.Services.AddScoped<IUserSessionService, UserSessionService>();
 
