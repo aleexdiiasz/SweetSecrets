@@ -32,6 +32,10 @@ TenantId = null
 
 TEN-024 mantiene esta regla en `/admin`: el shell no resuelve tenant ni consume modulos operacionales. La ruta requiere `PLATFORM_ADMIN`; las rutas tenant continúan requiriendo `TENANT_OWNER`.
 
+TEN-025 agrega listado, detalle, suspensión y reactivación de tenants exclusivamente para `PLATFORM_ADMIN`. Suspender cambia el estado en MASTER: un `TENANT_OWNER` suspendido es rechazado después de validar correctamente sus credenciales y políticas Identity, pero antes de crear sesión o cookie. Las credenciales inválidas conservan la respuesta genérica y no revelan el estado tenant. `PLATFORM_ADMIN` no queda afectado.
+
+Las sesiones tenant existentes siguen protegidas por `CurrentTenantResolver`, que solo admite tenants `Active`. `/api/auth/me` también consulta la política MASTER y finaliza la sesión si el tenant dejó de estar activo, evitando un shell autenticado sin datos. Reactivar el tenant permite nuevamente login y operación sin modificar el usuario ni su contraseña.
+
 ## Cookies
 
 La autenticación utiliza cookies Identity.
@@ -62,13 +66,16 @@ Proceso:
 4. verificar IsBlocked;
 5. validar contraseña con Identity;
 6. aplicar control de intentos fallidos;
-7. crear user_session;
-8. actualizar LastLoginAt;
-9. actualizar LastActivityAt;
-10. generar cookie;
-11. agregar session_id como claim;
-12. agregar tenant_id cuando corresponda;
-13. registrar LOGIN_SUCCESS.
+7. exigir correo confirmado cuando corresponde;
+8. obtener roles Identity;
+9. para `TENANT_OWNER`, exigir `TenantStatus.Active` desde MASTER;
+10. crear user_session;
+11. actualizar LastLoginAt;
+12. actualizar LastActivityAt;
+13. generar cookie;
+14. agregar session_id como claim;
+15. agregar tenant_id cuando corresponda;
+16. registrar LOGIN_SUCCESS.
 
 La respuesta exitosa incluye los roles obtenidos por Identity para elegir el destino inicial de UI: `PLATFORM_ADMIN` va a `/admin` y `TENANT_OWNER` a `/`. Esta selección no reemplaza la autorización de páginas y endpoints.
 

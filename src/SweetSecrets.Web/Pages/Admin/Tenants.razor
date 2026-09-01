@@ -1,0 +1,29 @@
+@page "/admin/tenants"
+@layout AdminLayout
+@attribute [Authorize(Roles = "PLATFORM_ADMIN")]
+@using SweetSecrets.Contracts.Admin.Tenants
+@using SweetSecrets.Web.Services.Admin
+@inject TenantsAdminApiClient Api
+
+<PageTitle>Tenants - SweetSecrets</PageTitle>
+<section class="tenant-page">
+    <header><span>Plataforma</span><h1>Tenants</h1><p>Consulta y administra el estado operativo de las cuentas registradas.</p></header>
+    <div class="filters"><input aria-label="Buscar tenants" placeholder="Nombre, código, owner o correo" @bind="search" @bind:event="oninput" /><select aria-label="Filtrar por estado" @bind="status"><option value="">Todos los estados</option><option>Active</option><option>Suspended</option><option>Provisioning</option><option>Disabled</option><option>Failed</option></select><button @onclick="LoadAsync" disabled="@loading">Buscar</button></div>
+    @if (loading) { <div class="state">Cargando tenants...</div> }
+    else if (error is not null) { <div class="state error" role="alert">@error <button @onclick="LoadAsync">Reintentar</button></div> }
+    else if (results?.Items.Count == 0) { <div class="state">No hay tenants que coincidan con los filtros.</div> }
+    else if (results is not null)
+    {
+        <p class="result-count">@results.TotalCount resultado(s)</p>
+        <div class="tenant-table"><div class="tenant-row heading"><span>Tenant</span><span>Owner</span><span>Estado</span><span>Creación</span><span></span></div>
+        @foreach (var tenant in results.Items) { <div class="tenant-row"><span><strong>@tenant.Name</strong><small>@tenant.Code</small></span><span><strong>@(tenant.OwnerName ?? "Sin owner")</strong><small>@tenant.OwnerEmail</small></span><span><em class="badge @tenant.Status.ToLowerInvariant()">@StatusText(tenant.Status)</em></span><span>@tenant.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</span><span><a href="@($"/admin/tenants/{tenant.Id}")">Ver detalle</a></span></div> }
+        </div>
+    }
+</section>
+
+@code {
+    private TenantPageResponse? results; private string? search; private string? status; private bool loading = true; private string? error;
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync(){loading=true;error=null;try{results=await Api.SearchAsync(search,status);}catch(HttpRequestException){error="No fue posible cargar los tenants.";}finally{loading=false;}}
+    private static string StatusText(string value)=>value switch{"Active"=>"Activo","Suspended"=>"Suspendido","Provisioning"=>"En preparación","Disabled"=>"Deshabilitado","Failed"=>"Fallido",_=>value};
+}

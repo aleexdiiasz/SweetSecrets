@@ -6,6 +6,8 @@ Documentar cómo SweetSecrets determina de forma segura qué base de datos tenan
 
 La resolución del tenant se realiza exclusivamente en el backend.
 
+TEN-025 permite suspender tenants desde MASTER. `CurrentTenantResolver` conserva la condición `Status = Active`: un tenant `Suspended` no obtiene `TenantDbContext`; al reactivarlo vuelve a resolver normalmente. Ninguna operación administrativa abre la base tenant.
+
 El frontend nunca decide ni proporciona:
 
 - TenantId para seleccionar contexto

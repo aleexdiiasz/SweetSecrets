@@ -17,19 +17,22 @@ public class AuthController : ControllerBase
     private readonly IEmailConfirmationService _emailConfirmationService;
     private readonly SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService _passwordRecoveryService;
     private readonly ISelfRegistrationService _selfRegistrationService;
+    private readonly ITenantLoginPolicy _tenantLoginPolicy;
 
     public AuthController(
         SweetSecrets.Application.Common.Authentication.IAuthenticationService authenticationService,
         IAccountService accountService,
         IEmailConfirmationService emailConfirmationService,
         SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService passwordRecoveryService,
-        ISelfRegistrationService selfRegistrationService)
+        ISelfRegistrationService selfRegistrationService,
+        ITenantLoginPolicy tenantLoginPolicy)
     {
         _authenticationService = authenticationService;
         _accountService = accountService;
         _emailConfirmationService = emailConfirmationService;
         _passwordRecoveryService = passwordRecoveryService;
         _selfRegistrationService = selfRegistrationService;
+        _tenantLoginPolicy = tenantLoginPolicy;
     }
 
     [AllowAnonymous]
@@ -218,7 +221,7 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
-    public ActionResult<CurrentUserResponse> Me()
+    public async Task<ActionResult<CurrentUserResponse>> Me(CancellationToken cancellationToken)
     {
         var userIdValue =
             User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -246,6 +249,29 @@ public class AuthController : ControllerBase
             .Select(x => x.Value)
             .Distinct()
             .ToList();
+
+        var tenantDecision = await _tenantLoginPolicy.EvaluateAsync(
+            tenantId,
+            roles,
+            cancellationToken);
+
+        if (tenantDecision != TenantLoginDecision.Allowed)
+        {
+            await _authenticationService.LogoutAsync(
+                userId,
+                sessionId,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Request.Headers.UserAgent.ToString(),
+                cancellationToken);
+
+            return Unauthorized(new
+            {
+                ErrorCode = tenantDecision == TenantLoginDecision.Suspended
+                    ? "TENANT_SUSPENDED"
+                    : "TENANT_UNAVAILABLE",
+                Message = "La sesión ya no está disponible. Inicia sesión nuevamente."
+            });
+        }
 
         return Ok(new CurrentUserResponse
         {
