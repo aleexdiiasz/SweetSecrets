@@ -110,3 +110,7 @@ TEN-014 no implementa:
 - TENANT_USER
 
 Estos modulos deben continuar en issues independientes.
+
+## Separacion del area administrativa
+
+TEN-024 agrega un shell independiente en `/admin` para `PLATFORM_ADMIN`. No reutiliza `MainLayout`, no muestra navegacion tenant y no consulta bases tenant. Detalle: `docs/technical/PLATFORM_ADMIN_SHELL.md`.

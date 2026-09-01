@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using SweetSecrets.Application.Common.Products;
 using SweetSecrets.Contracts.Products;
 using SweetSecrets.Infrastructure.Services.Products;
+using SweetSecrets.Application.Common.Security;
 
 namespace SweetSecrets.Api.Controllers;
 
 [ApiController]
 [Route("api/products")]
-[Authorize]
+[Authorize(Roles = PlatformRoles.TenantOwner)]
 public sealed class ProductsController : ControllerBase
 {
     private readonly IProductQueryService _productQueryService;

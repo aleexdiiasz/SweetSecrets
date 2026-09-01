@@ -57,6 +57,7 @@ public class AuthController : ControllerBase
         {
             UserId = result.UserId!.Value,
             TenantId = result.TenantId,
+            Roles = result.Roles,
             Message = "Inicio de sesión correcto."
         });
     }

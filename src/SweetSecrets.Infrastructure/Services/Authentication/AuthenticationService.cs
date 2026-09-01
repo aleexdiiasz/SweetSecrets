@@ -150,6 +150,8 @@ public class AuthenticationService
                     updateResult.Errors.Select(x => x.Description)));
         }
 
+        var roles = await _userManager.GetRolesAsync(user);
+
         var claims = new List<Claim>
         {
             new("session_id", sessionId.ToString())
@@ -198,7 +200,8 @@ public class AuthenticationService
             Succeeded = true,
             UserId = user.Id,
             SessionId = sessionId,
-            TenantId = user.TenantId
+            TenantId = user.TenantId,
+            Roles = roles.ToList()
         };
     }
 

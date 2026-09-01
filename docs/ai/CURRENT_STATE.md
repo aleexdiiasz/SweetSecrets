@@ -1,5 +1,17 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-024 - PLATFORM_ADMIN Administration Shell
+
+TEN-024 agrega `/admin` protegido para PLATFORM_ADMIN con AdminLayout, navegacion de plataforma, identidad y logout. La landing es estatica, no inventa metricas y no consulta MASTER ni bases tenant.
+
+Login devuelve roles Identity y redirige PLATFORM_ADMIN a /admin y TENANT_OWNER a /. RedirectToLogin devuelve usuarios autenticados al home autorizado para su rol. MainLayout y las rutas operacionales permanecen exclusivas de TENANT_OWNER. Mi cuenta no se amplia a PLATFORM_ADMIN.
+
+Tenants, Usuarios, Sesiones y Auditoria se muestran como modulos pendientes sin enlaces rotos. Documentacion: docs/technical/PLATFORM_ADMIN_SHELL.md.
+
+PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR con ambos roles, rechazo cruzado, recarga, logout y responsive aproximadamente a 390 px.
+
+---
+
 ## Actualizacion TEN-023 - Production Readiness & Health Checks
 
 TEN-023 agrega `GET /health/live` sin dependencias y `GET /health/ready` con verificacion liviana de conectividad a MASTER. Ambos son anonimos, usan la respuesta minima `{status}` y no exponen excepciones, connection strings ni detalles de PostgreSQL.

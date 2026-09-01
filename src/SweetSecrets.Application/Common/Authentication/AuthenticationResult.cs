@@ -13,4 +13,6 @@ public class AuthenticationResult
     public Guid? SessionId { get; set; }
 
     public Guid? TenantId { get; set; }
+
+    public IReadOnlyList<string> Roles { get; set; } = [];
 }

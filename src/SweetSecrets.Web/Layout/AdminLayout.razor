@@ -1,0 +1,35 @@
+@inherits LayoutComponentBase
+@using SweetSecrets.Web.Services.Auth
+@inject AuthApiClient AuthApiClient
+@inject NavigationManager Navigation
+
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <AdminNavMenu />
+    </aside>
+    <div class="admin-main">
+        <header class="admin-header">
+            <div class="admin-heading">
+                <span>Administración global</span>
+                <strong>SweetSecrets Platform</strong>
+            </div>
+            <div class="admin-actions">
+                <AuthorizeView Roles="PLATFORM_ADMIN" Context="adminContext">
+                    <Authorized>
+                        <span class="admin-identity">@adminContext.User.Identity?.Name</span>
+                    </Authorized>
+                </AuthorizeView>
+                <button type="button" @onclick="LogoutAsync">Cerrar sesión</button>
+            </div>
+        </header>
+        <main class="admin-content">@Body</main>
+    </div>
+</div>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        await AuthApiClient.LogoutAsync();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+}

@@ -132,7 +132,8 @@
             }
 
             Navigation.NavigateTo(
-                "/",
+                AuthenticatedAreaNavigation.ResolveHome(
+                    result.Response?.Roles ?? []),
                 replace: true);
         }
         finally
