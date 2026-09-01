@@ -209,11 +209,21 @@ No sustituye la UI de autenticación Blazor.
 
 TEN-018 agrega la ruta pública `/register`. Consume `POST /api/auth/register` y, después de un resultado correcto, dirige a `/login` porque el endpoint no crea automáticamente una sesión ni una cookie de autenticación.
 
+## Recuperación de contraseña
+
+TEN-019 agrega:
+
+- `POST /api/auth/forgot-password`;
+- `POST /api/auth/reset-password`;
+- `/forgot-password`;
+- `/reset-password`.
+
+Los tokens son generados y validados por ASP.NET Core Identity, tienen vigencia de una hora y la solicitud inicial utiliza una respuesta genérica para evitar enumeración de usuarios.
+
 ## Pendiente
 
 - confirmación de correo;
-- recuperación de contraseña;
-- cambio de contraseña;
+- cambio de contraseña para usuarios autenticados;
 - expiración avanzada de sesiones;
 - invalidación periódica basada en SecurityStamp;
 - rate limiting de login;

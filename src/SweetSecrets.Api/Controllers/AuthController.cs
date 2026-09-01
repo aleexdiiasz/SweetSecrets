@@ -11,11 +11,16 @@ namespace SweetSecrets.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly SweetSecrets.Application.Common.Authentication.IAuthenticationService _authenticationService;
+    private readonly SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService _passwordRecoveryService;
     private readonly ISelfRegistrationService _selfRegistrationService;
 
-    public AuthController(SweetSecrets.Application.Common.Authentication.IAuthenticationService authenticationService, ISelfRegistrationService selfRegistrationService)
+    public AuthController(
+        SweetSecrets.Application.Common.Authentication.IAuthenticationService authenticationService,
+        SweetSecrets.Application.Common.Authentication.IPasswordRecoveryService passwordRecoveryService,
+        ISelfRegistrationService selfRegistrationService)
     {
         _authenticationService = authenticationService;
+        _passwordRecoveryService = passwordRecoveryService;
         _selfRegistrationService = selfRegistrationService;
     }
 
@@ -117,6 +122,48 @@ public class AuthController : ControllerBase
                     message = ex.Message
                 });
         }
+    }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ForgotPasswordResponse>> ForgotPassword(
+        ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _passwordRecoveryService.RequestResetAsync(request.Email, cancellationToken);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
+        return Ok(new ForgotPasswordResponse
+        {
+            Message = "Si existe una cuenta asociada a este correo, recibirás instrucciones para restablecer tu contraseña."
+        });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ResetPasswordResponse>> ResetPassword(
+        ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _passwordRecoveryService.ResetPasswordAsync(
+            request.Email,
+            request.Token,
+            request.NewPassword,
+            cancellationToken);
+
+        if (!result.Succeeded)
+            return BadRequest(new { message = result.ErrorMessage });
+
+        return Ok(new ResetPasswordResponse
+        {
+            Message = "Tu contraseña se actualizó correctamente."
+        });
     }
 
     [Authorize]

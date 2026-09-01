@@ -1,5 +1,18 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-019 - Password Recovery & Reset
+
+TEN-019 implementa los endpoints publicos POST /api/auth/forgot-password y POST /api/auth/reset-password sobre ASP.NET Core Identity en MASTER. La solicitud inicial usa una respuesta generica equivalente para correos existentes, inexistentes, inactivos o bloqueados y no expone tokens ni informacion tenant.
+
+Los tokens se generan y validan con Identity y Data Protection, se codifican para URL y vencen en una hora. En Development, la entrega se realiza mediante una bandeja local temporal en %TEMP%/SweetSecrets/password-recovery. Production conserva una abstraccion sin proveedor configurado; la seleccion e implementacion del proveedor de correo sigue pendiente.
+
+La Web agrega las rutas publicas /forgot-password y /reset-password, estados de envio y error, validacion de confirmacion y estilos responsive aproximadamente a 390 px. Login enlaza al inicio de recuperacion.
+
+Documentacion: docs/technical/PASSWORD_RECOVERY.md.
+
+PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR del flujo completo, tokens invalidos o expirados, nueva contrasena, login posterior y responsive aproximadamente a 390 px.
+
+---
 ## Actualizacion TEN-018 - Tenant Self-Registration UI
 
 TEN-018 implementa la ruta publica /register con los campos BusinessName, FullName, Email y Password del contrato existente. AuthApiClient consume POST /api/auth/register y evita exponer TenantId, TenantCode, DatabaseName, ConnectionString, roles o detalles internos de provisioning.

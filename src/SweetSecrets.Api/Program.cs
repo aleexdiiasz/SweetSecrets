@@ -72,6 +72,14 @@ builder.Services
     .AddEntityFrameworkStores<MasterDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+{
+    options.TokenLifespan = TimeSpan.FromHours(1);
+});
+
+builder.Services.Configure<PasswordRecoveryOptions>(
+    builder.Configuration.GetSection(PasswordRecoveryOptions.SectionName));
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "SweetSecrets.Auth";
@@ -126,6 +134,17 @@ builder.Services.AddScoped<IPlatformUserAdminService, PlatformUserAdminService>(
 builder.Services.AddScoped<IPlatformUserQueryService, PlatformUserQueryService>();
 
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+builder.Services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<IPasswordResetNotificationService, DevelopmentPasswordResetNotificationService>();
+}
+else
+{
+    builder.Services.AddScoped<IPasswordResetNotificationService, UnconfiguredPasswordResetNotificationService>();
+}
 
 builder.Services.AddScoped<ITenantDatabaseManager, PostgresTenantDatabaseManager>();
 
