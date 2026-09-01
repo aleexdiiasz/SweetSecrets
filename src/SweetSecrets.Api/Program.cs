@@ -29,6 +29,8 @@ using SweetSecrets.Application.Common.Email;
 using SweetSecrets.Infrastructure.Services.Email;
 using SweetSecrets.Application.Common.Dashboard;
 using SweetSecrets.Infrastructure.Services.Dashboard;
+using SweetSecrets.Application.Common.Tenants;
+using SweetSecrets.Infrastructure.Services.Tenants;
 using SweetSecrets.Api.Configuration;
 using SweetSecrets.Api.Health;
 
@@ -201,6 +203,9 @@ builder.Services.AddScoped<ISettingCommandService, SettingCommandService>();
 builder.Services.AddScoped<IUnitQueryService, UnitQueryService>();
 
 builder.Services.AddScoped<IDashboardQueryService, DashboardQueryService>();
+
+builder.Services.AddScoped<IPlatformTenantStore, PlatformTenantStore>();
+builder.Services.AddScoped<IPlatformTenantAdminService, PlatformTenantAdminService>();
 
 builder.Services.AddSingleton<IMasterDatabaseHealthProbe, MasterDatabaseHealthProbe>();
 

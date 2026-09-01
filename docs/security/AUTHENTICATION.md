@@ -32,6 +32,8 @@ TenantId = null
 
 TEN-024 mantiene esta regla en `/admin`: el shell no resuelve tenant ni consume modulos operacionales. La ruta requiere `PLATFORM_ADMIN`; las rutas tenant continúan requiriendo `TENANT_OWNER`.
 
+TEN-025 agrega listado, detalle, suspensión y reactivación de tenants exclusivamente para `PLATFORM_ADMIN`. Suspender cambia el estado en MASTER y bloquea la resolución operacional porque solo tenants `Active` pueden obtener contexto.
+
 ## Cookies
 
 La autenticación utiliza cookies Identity.

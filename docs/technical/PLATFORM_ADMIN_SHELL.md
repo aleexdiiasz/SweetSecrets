@@ -21,7 +21,7 @@ El login devuelve los roles obtenidos por ASP.NET Core Identity. `AuthenticatedA
 
 Incluye sidebar diferenciado, encabezado de plataforma, correo autenticado y logout. No ofrece “Mi cuenta”: TEN-020 y sus endpoints continúan limitados a `TENANT_OWNER`.
 
-Inicio es la única ruta administrativa activa. Tenants, Usuarios, Sesiones y Auditoría se muestran como pendientes, sin enlaces rotos ni páginas falsas. La landing presenta el roadmap TEN-025, TEN-026 y TEN-027 sin inventar métricas.
+Inicio y Tenants son rutas administrativas activas. TEN-025 implementa `/admin/tenants` y su detalle; Usuarios, Sesiones y Auditoría continúan pendientes. Detalle: `docs/technical/PLATFORM_ADMIN_TENANTS.md`.
 
 ## Seguridad y multi-tenancy
 
