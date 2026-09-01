@@ -23,6 +23,8 @@ using SweetSecrets.Application.Common.Recipes;
 using SweetSecrets.Infrastructure.Services.Recipes;
 using SweetSecrets.Application.Common.Settings;
 using SweetSecrets.Infrastructure.Services.Settings;
+using SweetSecrets.Application.Common.Units;
+using SweetSecrets.Infrastructure.Services.Units;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -156,6 +158,8 @@ builder.Services.AddScoped<IRecipeCommandService, RecipeCommandService>();
 builder.Services.AddScoped<ISettingQueryService, SettingQueryService>();
 
 builder.Services.AddScoped<ISettingCommandService, SettingCommandService>();
+
+builder.Services.AddScoped<IUnitQueryService, UnitQueryService>();
 
 // Add services to the container.
 

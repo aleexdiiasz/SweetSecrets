@@ -1,12 +1,573 @@
 ﻿@page "/productos"
 @attribute [Authorize(Roles = "TENANT_OWNER")]
 
+@using SweetSecrets.Contracts.Products
+@using SweetSecrets.Web.Services.Products
+@using SweetSecrets.Contracts.Units
+@using SweetSecrets.Web.Services.Units
+
+@inject ProductsApiClient ProductsApiClient
+@inject UnitsApiClient UnitsApiClient
+
 <PageTitle>Productos - SweetSecrets</PageTitle>
 
-<section>
-    <h1>Productos</h1>
+<section class="products-page">
+    <header class="products-header">
+        <div>
+            <span class="products-eyebrow">
+                Catálogo
+            </span>
 
-    <p>
-        La administración de productos se implementará en el siguiente bloque funcional.
-    </p>
+            <h1>Productos</h1>
+
+            <p>
+                Consulta los ingredientes y productos disponibles en tu cuenta.
+            </p>
+        </div>
+
+        <div class="products-actions">
+            <button type="button"
+                    class="primary-button"
+                    @onclick="OpenCreateForm">
+                Nuevo producto
+            </button>
+        </div>
+    </header>
+
+    <div class="products-search">
+        <input type="search"
+               placeholder="Buscar producto..."
+               @bind="_searchTerm"
+               @bind:event="oninput" />
+    </div>
+
+    @if (_showCreateForm)
+    {
+        <section class="product-form-card">
+            <div class="product-form-header">
+                <div>
+                    <span class="products-eyebrow">
+                        Alta
+                    </span>
+
+                    <h2>Nuevo producto</h2>
+                </div>
+
+                <button type="button"
+                        class="secondary-button"
+                        @onclick="CloseCreateForm">
+                    Cancelar
+                </button>
+            </div>
+
+            <EditForm Model="_createModel"
+                      OnValidSubmit="CreateProductAsync">
+
+                <div class="product-form-grid">
+                    <div class="form-field">
+                        <label>Nombre</label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="_createModel.Name" />
+                    </div>
+
+                    <div class="form-field">
+                        <label>Cantidad de compra</label>
+
+                        <InputNumber class="form-control"
+                                     @bind-Value="_createModel.PurchaseQuantity" />
+                    </div>
+
+                    <div class="form-field">
+                        <label>Unidad</label>
+
+                        <InputSelect class="form-control"
+                                     @bind-Value="_createModel.UnitId">
+                            <option value="@Guid.Empty">
+                                Selecciona una unidad
+                            </option>
+
+                            @foreach (var unit in _units)
+                            {
+                                <option value="@unit.Id">
+                                    @unit.Code - @unit.Name
+                                </option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-field">
+                        <label>Precio de compra</label>
+
+                        <InputNumber class="form-control"
+                                     @bind-Value="_createModel.PurchasePrice" />
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_createErrorMessage))
+                {
+                    <div class="products-state products-state-error">
+                        @_createErrorMessage
+                    </div>
+                }
+
+                <div class="product-form-footer">
+                    <button type="submit"
+                            class="primary-button"
+                            disabled="@_isCreating">
+
+                        @if (_isCreating)
+                        {
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <span>Guardar producto</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </section>
+    }
+
+
+    @if (_showEditForm)
+    {
+        <section class="product-form-card">
+            <div class="product-form-header">
+                <div>
+                    <span class="products-eyebrow">
+                        Edición
+                    </span>
+
+                    <h2>Editar producto</h2>
+                </div>
+
+                <button type="button"
+                        class="secondary-button"
+                        @onclick="CloseEditForm">
+                    Cancelar
+                </button>
+            </div>
+
+            <EditForm Model="_editModel"
+                      OnValidSubmit="UpdateProductAsync">
+
+                <div class="product-form-grid">
+                    <div class="form-field">
+                        <label>Nombre</label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="_editModel.Name" />
+                    </div>
+
+                    <div class="form-field">
+                        <label>Cantidad de compra</label>
+
+                        <InputNumber class="form-control"
+                                     @bind-Value="_editModel.PurchaseQuantity" />
+                    </div>
+
+                    <div class="form-field">
+                        <label>Unidad</label>
+
+                        <InputSelect class="form-control"
+                                     @bind-Value="_editModel.UnitId">
+
+                            @foreach (var unit in _units)
+                            {
+                                <option value="@unit.Id">
+                                    @unit.Code - @unit.Name
+                                </option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-field">
+                        <label>Precio de compra</label>
+
+                        <InputNumber class="form-control"
+                                     @bind-Value="_editModel.PurchasePrice" />
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_editErrorMessage))
+                {
+                    <div class="products-state products-state-error">
+                        @_editErrorMessage
+                    </div>
+                }
+
+                <div class="product-form-footer">
+                    <button type="submit"
+                            class="primary-button"
+                            disabled="@_isUpdating">
+
+                        @if (_isUpdating)
+                        {
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <span>Guardar cambios</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </section>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="products-state">
+            Cargando productos...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="products-state products-state-error">
+            @_errorMessage
+        </div>
+    }
+    else if (_products.Count == 0)
+    {
+        <div class="products-state">
+            No hay productos registrados.
+        </div>
+    }
+    else
+    {
+        <div class="products-table-wrapper">
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad compra</th>
+                        <th>Unidad</th>
+                        <th>Precio compra</th>
+                        <th>Costo unitario</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var product in FilteredProducts)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@product.Name</strong>
+                            </td>
+
+                            <td>
+                                @product.PurchaseQuantity.ToString("0.####")
+                            </td>
+
+                            <td>
+                                @product.UnitCode
+                            </td>
+
+                            <td>
+                                @product.PurchasePrice.ToString("C2")
+                            </td>
+
+                            <td>
+                                @product.UnitCost.ToString("C6")
+                            </td>
+
+                            <td>
+                                @if (product.IsActive)
+                                {
+                                    <span class="status-badge status-active">
+                                        Activo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">
+                                        Inactivo
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <button type="button"
+                                            class="secondary-button"
+                                            @onclick="() => OpenEditForm(product)">
+                                        Editar
+                                    </button>
+
+                                    <button type="button"
+                                            class="secondary-button"
+                                            @onclick="() => ToggleProductActiveAsync(product)">
+                                        @(product.IsActive ? "Desactivar" : "Activar")
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </section>
+
+@code {
+
+    private IReadOnlyList<ProductListItemResponse> _products =
+       Array.Empty<ProductListItemResponse>();
+
+    private IReadOnlyList<UnitListItemResponse> _units =
+        Array.Empty<UnitListItemResponse>();
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var productsTask =
+     ProductsApiClient.GetAllAsync();
+
+            var unitsTask =
+                UnitsApiClient.GetAllAsync();
+
+            await Task.WhenAll(
+                productsTask,
+                unitsTask);
+
+            _products =
+                await productsTask;
+
+            _units =
+                (await unitsTask)
+                    .Where(x => x.IsActive)
+                    .ToList();
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage =
+                "No fue posible cargar los productos.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string _searchTerm = string.Empty;
+
+    private IEnumerable<ProductListItemResponse> FilteredProducts =>
+        string.IsNullOrWhiteSpace(_searchTerm)
+            ? _products
+            : _products.Where(
+                x => x.Name.Contains(
+                    _searchTerm,
+                    StringComparison.OrdinalIgnoreCase));
+
+
+
+    // NUEVO PRODUCTO
+    private readonly CreateProductRequest _createModel = new();
+
+    private bool _showCreateForm;
+
+    private bool _isCreating;
+
+    private string? _createErrorMessage;
+
+    private void OpenCreateForm()
+    {
+        _showEditForm = false;
+        _editingProductId = null;
+        _showCreateForm = true;
+        _createErrorMessage = null;
+    }
+
+    private void CloseCreateForm()
+    {
+        _showCreateForm = false;
+        _createErrorMessage = null;
+    }
+
+    private async Task CreateProductAsync()
+    {
+        if (_isCreating)
+        {
+            return;
+        }
+
+        _createErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_createModel.Name))
+        {
+            _createErrorMessage =
+                "El nombre es obligatorio.";
+            return;
+        }
+
+        if (_createModel.PurchaseQuantity <= 0)
+        {
+            _createErrorMessage =
+                "La cantidad de compra debe ser mayor que cero.";
+            return;
+        }
+
+        if (_createModel.UnitId == Guid.Empty)
+        {
+            _createErrorMessage =
+                "Selecciona una unidad.";
+            return;
+        }
+
+        if (_createModel.PurchasePrice < 0)
+        {
+            _createErrorMessage =
+                "El precio de compra no puede ser negativo.";
+            return;
+        }
+
+        _isCreating = true;
+
+        try
+        {
+            await ProductsApiClient.CreateAsync(
+                _createModel);
+
+            _products =
+                await ProductsApiClient.GetAllAsync();
+
+            _showCreateForm = false;
+
+            _createModel.Name = string.Empty;
+            _createModel.PurchaseQuantity = 0;
+            _createModel.UnitId = Guid.Empty;
+            _createModel.PurchasePrice = 0;
+        }
+        catch (HttpRequestException)
+        {
+            _createErrorMessage =
+                "No fue posible crear el producto.";
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+    }
+
+    // EDITAR PRODUCTO
+    private readonly UpdateProductRequest _editModel = new();
+
+    private Guid? _editingProductId;
+
+    private bool _showEditForm;
+
+    private bool _isUpdating;
+
+    private string? _editErrorMessage;
+
+    private void OpenEditForm(ProductListItemResponse product)
+    {
+        _showCreateForm = false;
+
+        _editingProductId = product.Id;
+
+        _editModel.Name = product.Name;
+        _editModel.PurchaseQuantity = product.PurchaseQuantity;
+        _editModel.UnitId = product.UnitId;
+        _editModel.PurchasePrice = product.PurchasePrice;
+
+        _editErrorMessage = null;
+        _showEditForm = true;
+    }
+
+    private void CloseEditForm()
+    {
+        _showEditForm = false;
+        _editingProductId = null;
+        _editErrorMessage = null;
+    }
+
+    private async Task UpdateProductAsync()
+    {
+        if (_isUpdating ||
+            !_editingProductId.HasValue)
+        {
+            return;
+        }
+
+        _editErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_editModel.Name))
+        {
+            _editErrorMessage =
+                "El nombre es obligatorio.";
+            return;
+        }
+
+        if (_editModel.PurchaseQuantity <= 0)
+        {
+            _editErrorMessage =
+                "La cantidad de compra debe ser mayor que cero.";
+            return;
+        }
+
+        if (_editModel.UnitId == Guid.Empty)
+        {
+            _editErrorMessage =
+                "Selecciona una unidad.";
+            return;
+        }
+
+        if (_editModel.PurchasePrice < 0)
+        {
+            _editErrorMessage =
+                "El precio de compra no puede ser negativo.";
+            return;
+        }
+
+        _isUpdating = true;
+
+        try
+        {
+            await ProductsApiClient.UpdateAsync(
+                _editingProductId.Value,
+                _editModel);
+
+            _products =
+                await ProductsApiClient.GetAllAsync();
+
+            CloseEditForm();
+        }
+        catch (HttpRequestException)
+        {
+            _editErrorMessage =
+                "No fue posible actualizar el producto.";
+        }
+        finally
+        {
+            _isUpdating = false;
+        }
+    }
+
+    //ACTIVAR PRODUCTO
+    private async Task ToggleProductActiveAsync(ProductListItemResponse product)
+    {
+        try
+        {
+            await ProductsApiClient.SetActiveAsync(
+                product.Id,
+                !product.IsActive);
+
+            _products =
+                await ProductsApiClient.GetAllAsync();
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage =
+                "No fue posible cambiar el estado del producto.";
+        }
+    }
+}
