@@ -205,9 +205,12 @@ Swagger se utiliza para pruebas manuales durante desarrollo.
 
 No sustituye la UI de autenticación Blazor.
 
+## Registro público Web
+
+TEN-018 agrega la ruta pública `/register`. Consume `POST /api/auth/register` y, después de un resultado correcto, dirige a `/login` porque el endpoint no crea automáticamente una sesión ni una cookie de autenticación.
+
 ## Pendiente
 
-- registro público;
 - confirmación de correo;
 - recuperación de contraseña;
 - cambio de contraseña;

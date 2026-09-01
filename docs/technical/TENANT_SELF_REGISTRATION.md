@@ -33,3 +33,11 @@ Ejecutar seed inicial
 Crear usuario TENANT_OWNER
         ↓
 Cuenta lista
+
+---
+
+## UI pública
+
+TEN-018 agrega `/register` en SweetSecrets.Web. El frontend envía exclusivamente los campos del contrato `RegisterRequest` y no ejecuta provisioning directamente.
+
+La implementación y sus pruebas se documentan en `docs/technical/SELF_REGISTRATION_UI.md`.

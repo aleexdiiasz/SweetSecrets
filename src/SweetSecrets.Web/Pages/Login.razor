@@ -15,6 +15,13 @@
         <p>Ingresa a tu cuenta</p>
     </div>
 
+    @if (Registered)
+    {
+        <div class="login-success" role="status">
+            Tu cuenta se creó correctamente. Ya puedes iniciar sesión.
+        </div>
+    }
+
     <EditForm Model="_model" OnValidSubmit="HandleLoginAsync">
         <div class="form-group">
             <label for="email">Correo electrónico</label>
@@ -62,6 +69,11 @@
             }
         </button>
     </EditForm>
+
+    <p class="auth-link">
+        ¿Aún no tienes cuenta?
+        <a href="/register">Crear cuenta</a>
+    </p>
 </div>
 
 @code {
@@ -70,6 +82,9 @@
     private bool _isSubmitting;
 
     private string? _errorMessage;
+
+    [SupplyParameterFromQuery(Name = "registered")]
+    public bool Registered { get; set; }
 
     private async Task HandleLoginAsync()
     {
