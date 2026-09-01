@@ -41,3 +41,5 @@ Se conserva la semántica existente: online significa al menos una sesión activ
 ## Seguridad y pruebas
 
 La búsqueda y filtros se ejecutan en PostgreSQL MASTER. Los contratos y servicios no dependen de `ITenantDbContextFactory`. Las pruebas cubren autorización, propagación server-side, 404, ausencia de campos sensibles, acciones rechazadas, sesiones y revocación. Queda pendiente la prueba funcional en navegador con MASTER real y responsive a 390 px.
+
+Durante la validación manual se detectó que el listado ordenaba sobre una proyección intermedia `UserRow` que Npgsql no podía traducir. La consulta corregida conserva los joins y aplica búsqueda, filtros, `OrderBy`, `Skip` y `Take` sobre las columnas originales antes de proyectar `PlatformUserSummary`. Pruebas de traducción con el provider relacional Npgsql generan el SQL real mediante `ToQueryString`; no se usa `AsEnumerable`, materialización previa ni evaluación client-side.

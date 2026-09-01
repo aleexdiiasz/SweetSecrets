@@ -10,6 +10,8 @@ La revocacion es real: UserActivityMiddleware valida session_id activo y pertene
 
 Todo opera exclusivamente sobre MASTER y no usa ITenantDbContextFactory. No se exponen PasswordHash, stamps, tokens, cookies, DatabaseName ni ConnectionString. Documentacion: docs/technical/PLATFORM_ADMIN_USERS_SESSIONS.md. PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR con MASTER real y responsive aproximadamente a 390 px.
 
+Correccion de validacion manual: GET /api/admin/users devolvia 500 porque EF Core/Npgsql no podia traducir OrderBy sobre la proyeccion intermedia UserRow.User.FullName. PlatformUserQueryService ahora mantiene joins y filtros sobre columnas originales, ordena por ApplicationUser.FullName/Id, aplica Skip/Take y solo entonces proyecta PlatformUserSummary. Pruebas Npgsql con ToQueryString cubren listado, orden, busqueda, rol, blocked, online/offline y paginacion sin client-side evaluation.
+
 ---
 
 ## Actualizacion TEN-025 - PLATFORM_ADMIN Tenant Management

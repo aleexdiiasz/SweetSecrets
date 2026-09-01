@@ -9,24 +9,12 @@ public sealed class PlatformUserQueryService(MasterDbContext dbContext) : IPlatf
     public async Task<PlatformUserPage> SearchAsync(PlatformUserSearch search, TimeSpan onlineWindow, CancellationToken cancellationToken = default)
     {
         var cutoff = DateTime.UtcNow.Subtract(onlineWindow);
-        var query = BuildUserQuery(search.Search, search.Role);
-        if (search.IsBlocked.HasValue)
-            query = query.Where(x => x.User.IsBlocked == search.IsBlocked.Value);
-        if (search.IsOnline.HasValue)
-            query = query.Where(x => dbContext.UserSessions.Any(s => s.UserId == x.User.Id && s.IsActive && s.LastActivityAt >= cutoff) == search.IsOnline.Value);
-
-        var total = await query.CountAsync(cancellationToken);
-        var rows = await query.OrderBy(x => x.User.FullName).Skip((search.Page - 1) * search.PageSize).Take(search.PageSize)
-            .Select(x => new { x.User.Id, x.User.Email, x.User.FullName, Role = x.Role.Name, x.User.TenantId,
-                TenantCode = x.Tenant == null ? null : x.Tenant.Code, TenantName = x.Tenant == null ? null : x.Tenant.Name,
-                x.User.IsActive, x.User.IsBlocked, x.User.EmailConfirmed,
-                IsOnline = dbContext.UserSessions.Any(s => s.UserId == x.User.Id && s.IsActive && s.LastActivityAt >= cutoff),
-                x.User.LastLoginAt, x.User.LastActivityAt, x.User.CreatedAt })
+        var total = await BuildSearchQuery(search, cutoff, applyPagination: false)
+            .CountAsync(cancellationToken);
+        var rows = await BuildSearchQuery(search, cutoff, applyPagination: true)
             .ToListAsync(cancellationToken);
 
-        return new PlatformUserPage(rows.Select(x => new PlatformUserSummary(x.Id, x.Email ?? string.Empty, x.FullName,
-            x.Role ?? string.Empty, x.TenantId, x.TenantCode, x.TenantName, x.IsActive, x.IsBlocked,
-            x.EmailConfirmed, x.IsOnline, x.LastLoginAt, x.LastActivityAt, x.CreatedAt)).ToList(), total, search.Page, search.PageSize);
+        return new PlatformUserPage(rows, total, search.Page, search.PageSize);
     }
 
     public async Task<PlatformUserDetail?> GetAsync(Guid userId, TimeSpan onlineWindow, CancellationToken cancellationToken = default)
@@ -66,15 +54,18 @@ public sealed class PlatformUserQueryService(MasterDbContext dbContext) : IPlatf
         return new PlatformUserSessionPage(rows, total, search.Page, search.PageSize);
     }
 
-    private IQueryable<UserRow> BuildUserQuery(string? search, string? role)
+    internal IQueryable<PlatformUserSummary> BuildSearchQuery(
+        PlatformUserSearch search,
+        DateTime cutoff,
+        bool applyPagination)
     {
         var query = from user in dbContext.Users.AsNoTracking()
                     join userRole in dbContext.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
                     join roleItem in dbContext.Roles.AsNoTracking() on userRole.RoleId equals roleItem.Id
                     join tenantItem in dbContext.Tenants.AsNoTracking() on user.TenantId equals tenantItem.Id into tenants
                     from tenant in tenants.DefaultIfEmpty()
-                    select new UserRow(user, roleItem, tenant);
-        var term = search?.Trim();
+                    select new { User = user, Role = roleItem, Tenant = tenant };
+        var term = search.Search?.Trim();
         if (!string.IsNullOrWhiteSpace(term))
         {
             if (Guid.TryParse(term, out var userId)) query = query.Where(x => x.User.Id == userId);
@@ -82,10 +73,24 @@ public sealed class PlatformUserQueryService(MasterDbContext dbContext) : IPlatf
                 (x.User.Email != null && EF.Functions.ILike(x.User.Email, $"%{term}%")) ||
                 (x.Tenant != null && (EF.Functions.ILike(x.Tenant.Name, $"%{term}%") || EF.Functions.ILike(x.Tenant.Code, $"%{term}%"))));
         }
-        if (!string.IsNullOrWhiteSpace(role)) query = query.Where(x => x.Role.Name == role);
-        return query;
-    }
+        if (!string.IsNullOrWhiteSpace(search.Role))
+            query = query.Where(x => x.Role.Name == search.Role);
+        if (search.IsBlocked.HasValue)
+            query = query.Where(x => x.User.IsBlocked == search.IsBlocked.Value);
+        if (search.IsOnline.HasValue)
+            query = query.Where(x => dbContext.UserSessions.Any(s => s.UserId == x.User.Id && s.IsActive && s.LastActivityAt >= cutoff) == search.IsOnline.Value);
 
-    private sealed record UserRow(Identity.ApplicationUser User, Microsoft.AspNetCore.Identity.IdentityRole<Guid> Role,
-        Domain.Entities.Master.Tenant? Tenant);
+        var ordered = query.OrderBy(x => x.User.FullName).ThenBy(x => x.User.Id);
+        var selected = applyPagination
+            ? ordered.Skip((search.Page - 1) * search.PageSize).Take(search.PageSize)
+            : ordered;
+
+        return selected.Select(x => new PlatformUserSummary(
+            x.User.Id, x.User.Email ?? string.Empty, x.User.FullName, x.Role.Name ?? string.Empty,
+            x.User.TenantId, x.Tenant == null ? null : x.Tenant.Code,
+            x.Tenant == null ? null : x.Tenant.Name, x.User.IsActive, x.User.IsBlocked,
+            x.User.EmailConfirmed,
+            dbContext.UserSessions.Any(s => s.UserId == x.User.Id && s.IsActive && s.LastActivityAt >= cutoff),
+            x.User.LastLoginAt, x.User.LastActivityAt, x.User.CreatedAt));
+    }
 }
