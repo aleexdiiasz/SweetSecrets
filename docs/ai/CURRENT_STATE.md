@@ -4795,3 +4795,93 @@ Pendiente:
 - commit
 - push
 - Pull Request a develop
+
+---
+
+# TEN-015 - Tenant Products UI
+
+Rama actual:
+
+feature/TEN-015-products-ui
+
+## Implementado
+
+- GET /api/units
+- UnitListItem
+- IUnitQueryService
+- UnitQueryService
+- UnitListItemResponse
+- UnitsController
+- UnitsApiClient
+- ProductsApiClient
+- listado real de productos
+- busqueda por nombre
+- alta de producto
+- edicion de producto
+- activar/desactivar
+- badges de estado
+- cultura es-MX
+- responsive
+
+## Validaciones
+
+GET /api/units -> 200
+
+Unidades:
+
+- GR
+- KG
+- L
+- ML
+- PZA
+
+Producto creado:
+
+PRODUCTO PRUEBA TEN-015
+Cantidad = 1000
+Unidad = GR
+Precio = 125
+UnitCost = 0.125000
+
+Producto editado:
+
+PRODUCTO PRUEBA TEN-015 EDITADO
+Cantidad = 500
+Unidad = GR
+Precio = 150
+UnitCost = 0.300000
+
+Activacion validada:
+
+Activo -> Inactivo -> Activo
+
+## Seguridad
+
+La UI no envia TenantId, DatabaseName ni ConnectionString.
+
+El contexto tenant sigue resolviendose mediante usuario autenticado -> MASTER -> tenant Active -> ITenantDbContextFactory.
+
+## Responsive
+
+Validado aproximadamente a 390 px.
+
+## Documentacion
+
+Se creo:
+
+docs/technical/PRODUCTS_UI.md
+
+## Estado
+
+TEN-015 implementado, compilado, probado y documentado.
+
+Pendiente:
+
+- git status
+- git diff --check
+- git add
+- commit
+- push
+- Pull Request a develop
+
+TENANT_USER permanece pausado.
