@@ -205,6 +205,12 @@ Swagger se utiliza para pruebas manuales durante desarrollo.
 
 No sustituye la UI de autenticación Blazor.
 
+## Endpoints operacionales anónimos
+
+`GET /health/live` y `GET /health/ready` permiten sondeo de infraestructura sin cookie. Su respuesta se limita al estado global y no expone identidad, tenant, base de datos, connection strings ni excepciones. No son endpoints funcionales de usuario.
+
+En Production, las excepciones no controladas utilizan el manejador global con respuestas genéricas Problem Details; las herramientas Swagger/OpenAPI permanecen exclusivas de Development.
+
 ## Registro público Web
 
 TEN-018 agrega la ruta pública `/register`. Consume `POST /api/auth/register` y, después de un resultado correcto, dirige a `/login` porque el endpoint no crea automáticamente una sesión ni una cookie de autenticación.

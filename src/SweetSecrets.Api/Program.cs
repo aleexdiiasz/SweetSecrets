@@ -29,9 +29,15 @@ using SweetSecrets.Application.Common.Email;
 using SweetSecrets.Infrastructure.Services.Email;
 using SweetSecrets.Application.Common.Dashboard;
 using SweetSecrets.Infrastructure.Services.Dashboard;
+using SweetSecrets.Api.Configuration;
+using SweetSecrets.Api.Health;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+ProductionConfigurationValidator.Validate(
+    builder.Configuration,
+    builder.Environment);
 
 var masterConnectionString =
     builder.Configuration.GetConnectionString("MasterDatabase")
@@ -196,16 +202,27 @@ builder.Services.AddScoped<IUnitQueryService, UnitQueryService>();
 
 builder.Services.AddScoped<IDashboardQueryService, DashboardQueryService>();
 
+builder.Services.AddSingleton<IMasterDatabaseHealthProbe, MasterDatabaseHealthProbe>();
+
+builder.Services.AddHealthChecks()
+    .AddCheck<MasterDatabaseHealthCheck>(
+        "master_database",
+        tags: ["ready"]);
+
 // Add services to the container.
 
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>() ?? [];
+
     options.AddPolicy(
         "SweetSecretsWeb",
         policy =>
         {
             policy
-                .WithOrigins("https://localhost:7011")
+                .WithOrigins(allowedOrigins)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -213,6 +230,8 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+
+builder.Services.AddProblemDetails();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -224,6 +243,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -240,6 +264,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseOperationalHealthChecks();
 
 app.UseCors("SweetSecretsWeb");
 

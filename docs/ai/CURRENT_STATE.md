@@ -1,5 +1,19 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-023 - Production Readiness & Health Checks
+
+TEN-023 agrega `GET /health/live` sin dependencias y `GET /health/ready` con verificacion liviana de conectividad a MASTER. Ambos son anonimos, usan la respuesta minima `{status}` y no exponen excepciones, connection strings ni detalles de PostgreSQL.
+
+Readiness no recorre bases tenant. Production valida al inicio MASTER, origenes CORS HTTPS y URLs publicas HTTPS de recuperacion/confirmacion. CORS deja de estar hardcodeado y el manejo global de excepciones Production usa Problem Details generico. El proveedor transaccional Production sigue pendiente sin elegir un proveedor arbitrario.
+
+La validacion manual detecto que el mapeo posterior a UseAuthentication permitia que Identity validara una cookie/SecurityStamp contra MASTER antes de llegar a health. La correccion usa middleware health terminal antes de autenticacion, actividad y autorizacion: live no ejecuta ningun probe ni middleware dependiente de DB; ready conserva exclusivamente CanConnectAsync sobre MASTER.
+
+Documentacion: docs/technical/PRODUCTION_READINESS.md.
+
+PENDIENTE PRUEBA EN ENTORNO PRODUCTION-LIKE con PostgreSQL MASTER real, configuracion externa y sondeos HTTP.
+
+---
+
 ## Actualizacion TEN-022 - Tenant Owner Dashboard Improvements
 
 TEN-022 convierte `/` en un dashboard real para TENANT_OWNER. `GET /api/dashboard` consulta exclusivamente la base tenant resuelta desde la identidad y devuelve productos/recetas totales y activos, costo promedio de recetas activas, y los cinco productos y recetas con actividad mas reciente.
