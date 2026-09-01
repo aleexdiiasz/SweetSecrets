@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SweetSecrets.Application.Common.Recipes;
+using SweetSecrets.Application.Common.Security;
 using SweetSecrets.Contracts.Recipes;
 
 namespace SweetSecrets.Api.Controllers;
 
 [ApiController]
 [Route("api/recipes")]
-[Authorize]
+[Authorize(Roles = PlatformRoles.TenantOwner)]
 public sealed class RecipesController : ControllerBase
 {
     private readonly IRecipeQueryService _recipeQueryService;

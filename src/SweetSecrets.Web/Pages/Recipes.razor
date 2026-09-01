@@ -1,12 +1,122 @@
-﻿@page "/recetas"
+@page "/recetas"
 @attribute [Authorize(Roles = "TENANT_OWNER")]
+@using SweetSecrets.Contracts.Products
+@using SweetSecrets.Contracts.Recipes
+@using SweetSecrets.Contracts.Units
+@using SweetSecrets.Web.Services.Products
+@using SweetSecrets.Web.Services.Recipes
+@using SweetSecrets.Web.Services.Units
+@inject ProductsApiClient ProductsApiClient
+@inject RecipesApiClient RecipesApiClient
+@inject UnitsApiClient UnitsApiClient
 
 <PageTitle>Recetas - SweetSecrets</PageTitle>
 
-<section>
-    <h1>Recetas</h1>
+<section class="recipes-page">
+    <header class="recipes-header">
+        <div><span class="recipes-eyebrow">Producción</span><h1>Recetas</h1><p>Administra ingredientes, costos y precios sugeridos de tu cuenta.</p></div>
+        <button type="button" class="primary-button" @onclick="OpenCreateForm">Nueva receta</button>
+    </header>
+    <div class="recipes-search"><input type="search" placeholder="Buscar receta..." @bind="_searchTerm" @bind:event="oninput" /></div>
 
-    <p>
-        La administración de recetas se implementará en un bloque funcional posterior.
-    </p>
+    @if (_showCreateForm || _showEditForm)
+    {
+        <section class="recipe-card">
+            <div class="card-header"><div><span class="recipes-eyebrow">@(_showCreateForm ? "Alta" : "Edición")</span><h2>@(_showCreateForm ? "Nueva receta" : "Editar receta")</h2></div><button type="button" class="secondary-button" @onclick="CloseRecipeForm">Cancelar</button></div>
+            <EditForm Model="_recipeForm" OnValidSubmit="SaveRecipeAsync">
+                <div class="form-grid">
+                    <div class="form-field"><label>Nombre</label><InputText class="form-control" maxlength="200" @bind-Value="_recipeForm.Name" /></div>
+                    <div class="form-field"><label>Multiplicador</label><InputNumber class="form-control" @bind-Value="_recipeForm.Multiplier" /></div>
+                    <div class="form-field form-field-wide"><label>Descripción</label><InputTextArea class="form-control" maxlength="1000" @bind-Value="_recipeForm.Description" /></div>
+                </div>
+                @if (_formError is not null) { <div class="error-message">@_formError</div> }
+                <div class="form-footer"><button type="submit" class="primary-button" disabled="@_isSaving">@(_isSaving ? "Guardando..." : "Guardar receta")</button></div>
+            </EditForm>
+        </section>
+    }
+
+    @if (_isLoading) { <div class="recipes-state">Cargando recetas...</div> }
+    else if (_errorMessage is not null) { <div class="recipes-state recipes-state-error">@_errorMessage</div> }
+    else if (_recipes.Count == 0) { <div class="recipes-state">No hay recetas registradas.</div> }
+    else if (!FilteredRecipes.Any()) { <div class="recipes-state">No hay recetas que coincidan con la búsqueda.</div> }
+    else
+    {
+        <div class="recipes-table-wrapper"><table class="recipes-table">
+            <thead><tr><th>Receta</th><th>Costo total</th><th>Multiplicador</th><th>Precio sugerido</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>@foreach (var recipe in FilteredRecipes){<tr>
+                <td><strong>@recipe.Name</strong>@if (!string.IsNullOrWhiteSpace(recipe.Description)){<small>@recipe.Description</small>}</td>
+                <td>@recipe.TotalCost.ToString("C2")</td><td>@recipe.Multiplier.ToString("0.####")</td><td>@recipe.SuggestedPrice.ToString("C2")</td>
+                <td><span class="status-badge @(recipe.IsActive ? "status-active" : "status-inactive")">@(recipe.IsActive ? "Activo" : "Inactivo")</span></td>
+                <td><div class="row-actions"><button type="button" class="secondary-button" @onclick="() => OpenDetailAsync(recipe.Id)">Ingredientes</button><button type="button" class="secondary-button" @onclick="() => OpenEditForm(recipe)">Editar</button><button type="button" class="secondary-button" disabled="@_isChangingState" @onclick="() => ToggleActiveAsync(recipe)">@(recipe.IsActive ? "Desactivar" : "Activar")</button></div></td>
+            </tr>}</tbody>
+        </table></div>
+    }
+
+    @if (_isLoadingDetail) { <div class="recipes-state">Cargando detalle de receta...</div> }
+    else if (_selectedRecipe is not null)
+    {
+        <section class="recipe-card detail-card">
+            <div class="card-header"><div><span class="recipes-eyebrow">Detalle</span><h2>@_selectedRecipe.Name</h2><p>@(_selectedRecipe.IsActive ? "Agrega o ajusta los ingredientes de la receta." : "La receta está inactiva y sus ingredientes son de solo lectura.")</p></div><button type="button" class="secondary-button" @onclick="CloseDetail">Cerrar</button></div>
+            <div class="cost-summary"><div><span>Costo total</span><strong>@_selectedRecipe.TotalCost.ToString("C2")</strong></div><div><span>Multiplicador</span><strong>@_selectedRecipe.Multiplier.ToString("0.####")</strong></div><div><span>Precio sugerido</span><strong>@_selectedRecipe.SuggestedPrice.ToString("C2")</strong></div></div>
+            @if (_selectedRecipe.IsActive)
+            {
+                <div class="ingredient-editor"><h3>@(_editingItemId.HasValue ? "Editar ingrediente" : "Agregar ingrediente")</h3>
+                    <div class="ingredient-form-grid">
+                        @if (!_editingItemId.HasValue){<div class="form-field"><label>Producto</label><InputSelect class="form-control" @bind-Value="_itemForm.ProductId" @bind-Value:after="ProductChanged"><option value="@Guid.Empty">Selecciona un producto</option>@foreach (var product in AvailableProducts){<option value="@product.Id">@product.Name</option>}</InputSelect></div>}
+                        <div class="form-field"><label>Cantidad</label><InputNumber class="form-control" @bind-Value="_itemForm.Quantity" /></div>
+                        @if (!_editingItemId.HasValue){<div class="form-field"><label>Unidad compatible</label><InputSelect class="form-control" @bind-Value="_itemForm.UnitId"><option value="@Guid.Empty">Selecciona una unidad</option>@foreach (var unit in CompatibleUnits){<option value="@unit.Id">@unit.Code - @unit.Name</option>}</InputSelect></div>}
+                    </div>
+                    @if (_itemError is not null){<div class="error-message">@_itemError</div>}
+                    <div class="editor-actions">@if (_editingItemId.HasValue){<button type="button" class="secondary-button" @onclick="CancelItemEdit">Cancelar</button>}<button type="button" class="primary-button" disabled="@_isSavingItem" @onclick="SaveItemAsync">@(_isSavingItem ? "Guardando..." : (_editingItemId.HasValue ? "Guardar cantidad" : "Agregar ingrediente"))</button></div>
+                </div>
+            }
+            @if (_selectedRecipe.Items.Count == 0){<div class="recipes-state">Esta receta todavía no tiene ingredientes.</div>}
+            else
+            {
+                <div class="recipes-table-wrapper"><table class="recipes-table ingredients-table"><thead><tr><th>Producto</th><th>Cantidad</th><th>Costo unitario</th><th>Costo total</th><th>Acciones</th></tr></thead><tbody>
+                    @foreach (var item in _selectedRecipe.Items){<tr><td><strong>@item.ProductName</strong></td><td>@item.Quantity.ToString("0.####") @item.UnitSymbol</td><td>@item.UnitCost.ToString("C6")</td><td>@item.TotalCost.ToString("C2")</td><td>@if (_selectedRecipe.IsActive){<div class="row-actions"><button type="button" class="secondary-button" @onclick="() => EditItem(item)">Editar cantidad</button><button type="button" class="danger-button" disabled="@_isSavingItem" @onclick="() => RemoveItemAsync(item.Id)">Eliminar</button></div>}</td></tr>}
+                </tbody></table></div>
+            }
+            <div class="history-section"><button type="button" class="secondary-button" @onclick="ToggleHistoryAsync">@(_showHistory ? "Ocultar historial" : "Ver historial de costos")</button>
+                @if (_isLoadingHistory){<p>Cargando historial...</p>}else if (_showHistory && _history.Count == 0){<p>No hay cambios de costo registrados.</p>}else if (_showHistory){<div class="recipes-table-wrapper"><table class="recipes-table history-table"><thead><tr><th>Fecha</th><th>Costo anterior</th><th>Costo nuevo</th><th>Motivo</th></tr></thead><tbody>@foreach (var entry in _history){<tr><td>@entry.CreatedAt.ToLocalTime().ToString("g")</td><td>@entry.PreviousCost.ToString("C2")</td><td>@entry.NewCost.ToString("C2")</td><td>@FormatReason(entry.Reason)</td></tr>}</tbody></table></div>}
+            </div>
+        </section>
+    }
 </section>
+
+@code {
+    private IReadOnlyList<RecipeListItemResponse> _recipes = [];
+    private IReadOnlyList<ProductListItemResponse> _products = [];
+    private IReadOnlyList<UnitListItemResponse> _units = [];
+    private IReadOnlyList<RecipeCostHistoryItemResponse> _history = [];
+    private RecipeDetailResponse? _selectedRecipe;
+    private readonly RecipeFormModel _recipeForm = new();
+    private readonly AddRecipeItemRequest _itemForm = new();
+    private string _searchTerm = string.Empty;
+    private string? _errorMessage, _formError, _itemError;
+    private Guid? _editingRecipeId, _editingItemId;
+    private bool _isLoading = true, _isLoadingDetail, _isSaving, _isSavingItem, _isChangingState, _showCreateForm, _showEditForm, _showHistory, _isLoadingHistory;
+    private IEnumerable<RecipeListItemResponse> FilteredRecipes => string.IsNullOrWhiteSpace(_searchTerm) ? _recipes : _recipes.Where(x => x.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<ProductListItemResponse> AvailableProducts => _products.Where(x => x.IsActive && (_selectedRecipe is null || _selectedRecipe.Items.All(i => i.ProductId != x.Id)));
+    private IEnumerable<UnitListItemResponse> CompatibleUnits { get { var product = _products.FirstOrDefault(x => x.Id == _itemForm.ProductId); var unit = product is null ? null : _units.FirstOrDefault(x => x.Id == product.UnitId); return unit is null ? [] : _units.Where(x => x.IsActive && x.MeasurementType == unit.MeasurementType); } }
+
+    protected override async Task OnInitializedAsync(){try{var r=RecipesApiClient.GetAllAsync();var p=ProductsApiClient.GetAllAsync();var u=UnitsApiClient.GetAllAsync();await Task.WhenAll(r,p,u);_recipes=await r;_products=await p;_units=await u;}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_errorMessage=Message(ex,"No fue posible cargar las recetas.");}finally{_isLoading=false;}}
+    private void OpenCreateForm(){_showEditForm=false;_editingRecipeId=null;_showCreateForm=true;_formError=null;_recipeForm.Name="";_recipeForm.Description=null;_recipeForm.Multiplier=3m;}
+    private void OpenEditForm(RecipeListItemResponse r){_showCreateForm=false;_showEditForm=true;_editingRecipeId=r.Id;_formError=null;_recipeForm.Name=r.Name;_recipeForm.Description=r.Description;_recipeForm.Multiplier=r.Multiplier;}
+    private void CloseRecipeForm(){_showCreateForm=false;_showEditForm=false;_editingRecipeId=null;_formError=null;}
+    private async Task SaveRecipeAsync(){if(_isSaving)return;_formError=string.IsNullOrWhiteSpace(_recipeForm.Name)?"El nombre es obligatorio.":_recipeForm.Multiplier<=0?"El multiplicador debe ser mayor que cero.":null;if(_formError is not null)return;_isSaving=true;try{if(_editingRecipeId.HasValue)await RecipesApiClient.UpdateAsync(_editingRecipeId.Value,new(){Name=_recipeForm.Name,Description=_recipeForm.Description,Multiplier=_recipeForm.Multiplier});else await RecipesApiClient.CreateAsync(new(){Name=_recipeForm.Name,Description=_recipeForm.Description,Multiplier=_recipeForm.Multiplier});await ReloadRecipesAsync();CloseRecipeForm();}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_formError=Message(ex,"No fue posible guardar la receta.");}finally{_isSaving=false;}}
+    private async Task OpenDetailAsync(Guid id){_isLoadingDetail=true;_errorMessage=null;_showHistory=false;_history=[];CancelItemEdit();try{_selectedRecipe=await RecipesApiClient.GetByIdAsync(id);}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_errorMessage=Message(ex,"No fue posible cargar el detalle.");}finally{_isLoadingDetail=false;}}
+    private void CloseDetail(){_selectedRecipe=null;_showHistory=false;CancelItemEdit();}
+    private void ProductChanged()=>_itemForm.UnitId=_products.FirstOrDefault(x=>x.Id==_itemForm.ProductId)?.UnitId??Guid.Empty;
+    private void EditItem(RecipeItemDetailResponse i){_editingItemId=i.Id;_itemForm.ProductId=i.ProductId;_itemForm.UnitId=i.UnitId;_itemForm.Quantity=i.Quantity;_itemError=null;}
+    private void CancelItemEdit(){_editingItemId=null;_itemForm.ProductId=Guid.Empty;_itemForm.UnitId=Guid.Empty;_itemForm.Quantity=0;_itemError=null;}
+    private async Task SaveItemAsync(){if(_isSavingItem||_selectedRecipe is null)return;_itemError=_itemForm.Quantity<=0?"La cantidad debe ser mayor que cero.":!_editingItemId.HasValue&&_itemForm.ProductId==Guid.Empty?"Selecciona un producto.":!_editingItemId.HasValue&&_itemForm.UnitId==Guid.Empty?"Selecciona una unidad compatible.":null;if(_itemError is not null)return;_isSavingItem=true;try{if(_editingItemId.HasValue)await RecipesApiClient.UpdateItemAsync(_selectedRecipe.Id,_editingItemId.Value,new(){Quantity=_itemForm.Quantity});else await RecipesApiClient.AddItemAsync(_selectedRecipe.Id,new(){ProductId=_itemForm.ProductId,UnitId=_itemForm.UnitId,Quantity=_itemForm.Quantity});var id=_selectedRecipe.Id;CancelItemEdit();await RefreshAsync(id);}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_itemError=Message(ex,"No fue posible guardar el ingrediente.");}finally{_isSavingItem=false;}}
+    private async Task RemoveItemAsync(Guid itemId){if(_isSavingItem||_selectedRecipe is null)return;_isSavingItem=true;try{var id=_selectedRecipe.Id;await RecipesApiClient.RemoveItemAsync(id,itemId);await RefreshAsync(id);}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_itemError=Message(ex,"No fue posible eliminar el ingrediente.");}finally{_isSavingItem=false;}}
+    private async Task ToggleActiveAsync(RecipeListItemResponse r){if(_isChangingState)return;_isChangingState=true;_errorMessage=null;try{await RecipesApiClient.SetActiveAsync(r.Id,!r.IsActive);await ReloadRecipesAsync();if(_selectedRecipe?.Id==r.Id)_selectedRecipe=await RecipesApiClient.GetByIdAsync(r.Id);}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_errorMessage=Message(ex,"No fue posible cambiar el estado de la receta.");}finally{_isChangingState=false;}}
+    private async Task ToggleHistoryAsync(){if(_selectedRecipe is null)return;if(_showHistory){_showHistory=false;return;}_showHistory=true;_isLoadingHistory=true;try{_history=await RecipesApiClient.GetCostHistoryAsync(_selectedRecipe.Id);}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_itemError=Message(ex,"No fue posible cargar el historial.");}finally{_isLoadingHistory=false;}}
+    private async Task RefreshAsync(Guid id){_selectedRecipe=await RecipesApiClient.GetByIdAsync(id);await ReloadRecipesAsync();if(_showHistory)_history=await RecipesApiClient.GetCostHistoryAsync(id);}
+    private async Task ReloadRecipesAsync()=>_recipes=await RecipesApiClient.GetAllAsync();
+    private static string Message(Exception ex,string fallback)=>ex is RecipesApiException&&!string.IsNullOrWhiteSpace(ex.Message)?ex.Message:fallback;
+    private static string FormatReason(string r)=>r switch{"RECIPE_ITEM_ADDED"=>"Ingrediente agregado","RECIPE_ITEM_UPDATED"=>"Ingrediente actualizado","RECIPE_ITEM_REMOVED"=>"Ingrediente eliminado","PRODUCT_UNIT_COST_CHANGED"=>"Cambió el costo del producto","PRODUCT_UNIT_CHANGED"=>"Cambió la unidad del producto","RECIPE_REACTIVATED_COST_SYNC"=>"Sincronización al reactivar",_=>r};
+    private sealed class RecipeFormModel{public string Name{get;set;}="";public string? Description{get;set;}public decimal Multiplier{get;set;}=3m;}
+}

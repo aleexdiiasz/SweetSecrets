@@ -8,6 +8,7 @@ using SweetSecrets.Web.Http;
 using SweetSecrets.Web.Services.Auth;
 using SweetSecrets.Web.Services.Units;
 using SweetSecrets.Web.Services.Products;
+using SweetSecrets.Web.Services.Recipes;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -65,5 +66,7 @@ builder.Services.AddScoped<AuthApiClient>();
 builder.Services.AddScoped<UnitsApiClient>();
 
 builder.Services.AddScoped<ProductsApiClient>();
+
+builder.Services.AddScoped<RecipesApiClient>();
 
 await builder.Build().RunAsync();
