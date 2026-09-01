@@ -1,7 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -80,26 +79,36 @@ public sealed class HealthCheckTests
     }
 
     [Fact]
-    public void Endpoints_AreAnonymousAndUseExpectedRoutes()
+    public async Task HealthPipeline_BypassesDatabaseDependentMiddleware()
     {
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-        {
-            EnvironmentName = Environments.Development
-        });
-        builder.Services.AddHealthChecks();
-        var app = builder.Build();
+        var masterChecks = 0;
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddHealthChecks().AddCheck(
+            "master_database",
+            () =>
+            {
+                masterChecks++;
+                return HealthCheckResult.Unhealthy();
+            },
+            tags: ["ready"]);
 
-        app.MapOperationalHealthChecks();
+        await using var provider = services.BuildServiceProvider();
+        var pipeline = new ApplicationBuilder(provider);
+        pipeline.UseOperationalHealthChecks();
+        pipeline.Run(_ => throw new InvalidOperationException(
+            "Authentication and database middleware must be bypassed."));
+        var application = pipeline.Build();
 
-        var routes = ((IEndpointRouteBuilder)app).DataSources
-            .SelectMany(source => source.Endpoints)
-            .OfType<RouteEndpoint>()
-            .ToDictionary(endpoint => endpoint.RoutePattern.RawText!);
+        var live = await InvokeAsync(application, provider, "/health/live");
+        Assert.Equal(StatusCodes.Status200OK, live.StatusCode);
+        Assert.Equal("{\"status\":\"Healthy\"}", live.Body);
+        Assert.Equal(0, masterChecks);
 
-        Assert.True(routes.ContainsKey("/health/live"));
-        Assert.True(routes.ContainsKey("/health/ready"));
-        Assert.Contains(routes["/health/live"].Metadata, metadata => metadata is Microsoft.AspNetCore.Authorization.IAllowAnonymous);
-        Assert.Contains(routes["/health/ready"].Metadata, metadata => metadata is Microsoft.AspNetCore.Authorization.IAllowAnonymous);
+        var ready = await InvokeAsync(application, provider, "/health/ready");
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, ready.StatusCode);
+        Assert.Equal("{\"status\":\"Unhealthy\"}", ready.Body);
+        Assert.Equal(1, masterChecks);
     }
 
     [Fact]
@@ -138,6 +147,24 @@ public sealed class HealthCheckTests
     private static IConfiguration BuildConfiguration(
         IDictionary<string, string?> values) =>
         new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+
+    private static async Task<(int StatusCode, string Body)> InvokeAsync(
+        RequestDelegate application,
+        IServiceProvider services,
+        string path)
+    {
+        var context = new DefaultHttpContext
+        {
+            RequestServices = services
+        };
+        context.Request.Path = path;
+        context.Response.Body = new MemoryStream();
+
+        await application(context);
+        context.Response.Body.Position = 0;
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
+        return (context.Response.StatusCode, body);
+    }
 
     private sealed class StubProbe(bool result) : IMasterDatabaseHealthProbe
     {

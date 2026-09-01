@@ -6,6 +6,8 @@ TEN-023 agrega `GET /health/live` sin dependencias y `GET /health/ready` con ver
 
 Readiness no recorre bases tenant. Production valida al inicio MASTER, origenes CORS HTTPS y URLs publicas HTTPS de recuperacion/confirmacion. CORS deja de estar hardcodeado y el manejo global de excepciones Production usa Problem Details generico. El proveedor transaccional Production sigue pendiente sin elegir un proveedor arbitrario.
 
+La validacion manual detecto que el mapeo posterior a UseAuthentication permitia que Identity validara una cookie/SecurityStamp contra MASTER antes de llegar a health. La correccion usa middleware health terminal antes de autenticacion, actividad y autorizacion: live no ejecuta ningun probe ni middleware dependiente de DB; ready conserva exclusivamente CanConnectAsync sobre MASTER.
+
 Documentacion: docs/technical/PRODUCTION_READINESS.md.
 
 PENDIENTE PRUEBA EN ENTORNO PRODUCTION-LIKE con PostgreSQL MASTER real, configuracion externa y sondeos HTTP.

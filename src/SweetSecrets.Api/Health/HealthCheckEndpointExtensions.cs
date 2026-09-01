@@ -6,22 +6,22 @@ namespace SweetSecrets.Api.Health;
 
 public static class HealthCheckEndpointExtensions
 {
-    public static IEndpointRouteBuilder MapOperationalHealthChecks(
-        this IEndpointRouteBuilder endpoints)
+    public static IApplicationBuilder UseOperationalHealthChecks(
+        this IApplicationBuilder app)
     {
-        endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
+        app.UseHealthChecks("/health/live", new HealthCheckOptions
         {
             Predicate = IsLivenessCheck,
             ResponseWriter = WriteMinimalResponseAsync
-        }).AllowAnonymous();
+        });
 
-        endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
+        app.UseHealthChecks("/health/ready", new HealthCheckOptions
         {
             Predicate = IsReadinessCheck,
             ResponseWriter = WriteMinimalResponseAsync
-        }).AllowAnonymous();
+        });
 
-        return endpoints;
+        return app;
     }
 
     public static bool IsLivenessCheck(HealthCheckRegistration registration) =>

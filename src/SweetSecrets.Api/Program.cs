@@ -265,6 +265,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseOperationalHealthChecks();
+
 app.UseCors("SweetSecretsWeb");
 
 app.UseAuthentication();
@@ -274,8 +276,6 @@ app.UseMiddleware<UserActivityMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.MapOperationalHealthChecks();
 
 using (var scope = app.Services.CreateScope())
 {

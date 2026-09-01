@@ -11,6 +11,10 @@ La API publica dos endpoints pequeños, anónimos y aptos para infraestructura:
 - `GET /health/live`: confirma que el proceso ASP.NET Core responde. No ejecuta health checks ni depende de PostgreSQL.
 - `GET /health/ready`: ejecuta la verificación etiquetada `ready` y confirma conectividad liviana con MASTER mediante `Database.CanConnectAsync()`.
 
+Durante la validación manual inicial se detectó que ambos endpoints estaban mapeados después de `UseAuthentication`. Una petición que incluía una cookie podía activar la validación Identity/SecurityStamp contra MASTER antes de llegar al endpoint; por ello liveness fallaba al detener PostgreSQL aunque `UserActivityMiddleware` excluyera el path.
+
+La corrección registra los health checks como middleware terminal inmediatamente después de HTTPS y antes de CORS, autenticación, actividad de usuario y autorización. Así `/health/live` no entra en ningún middleware dependiente de Identity o MASTER. `/health/ready` también evita autenticación, pero ejecuta deliberadamente solo el health check `master_database`.
+
 La respuesta contiene únicamente el estado global:
 
 ```json
@@ -60,6 +64,8 @@ Un fallo de readiness registra únicamente que MASTER no está disponible; no ad
 ## Pruebas
 
 Las pruebas automatizadas cubren estado saludable/no saludable de MASTER, supresión de detalles sensibles, cuerpo mínimo, rutas anónimas y validación Production sin afectar Development.
+
+Una prueba de pipeline ejecuta liveness y readiness delante de un middleware posterior que falla si es alcanzado: liveness permanece `200 Healthy` sin invocar el probe MASTER, mientras readiness invoca el probe y devuelve `503 Unhealthy` cuando falla.
 
 ## Limitaciones y pendientes
 
