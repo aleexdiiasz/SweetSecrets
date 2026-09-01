@@ -61,6 +61,38 @@ public sealed class AuthApiClient
         }
     }
 
+    public async Task<RegistrationAttemptResult> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "api/auth/register",
+                request,
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = await ReadErrorMessageAsync(
+                    response,
+                    "No fue posible crear la cuenta.",
+                    cancellationToken);
+
+                return RegistrationAttemptResult.Failed(message);
+            }
+
+            var registerResponse = await response.Content.ReadFromJsonAsync<RegisterResponse>(
+                cancellationToken: cancellationToken);
+
+            return registerResponse is null
+                ? RegistrationAttemptResult.Failed("No fue posible validar la respuesta del registro.")
+                : RegistrationAttemptResult.Success(registerResponse);
+        }
+        catch (HttpRequestException)
+        {
+            return RegistrationAttemptResult.Failed("No fue posible conectar con el servidor.");
+        }
+    }
+
     public async Task LogoutAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -77,7 +109,10 @@ public sealed class AuthApiClient
         }
     }
 
-    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private static Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
+        ReadErrorMessageAsync(response, "Correo o contraseña incorrectos.", cancellationToken);
+
+    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, string fallbackMessage, CancellationToken cancellationToken)
     {
         try
         {
@@ -92,7 +127,7 @@ public sealed class AuthApiClient
                     out var messageElement))
             {
                 return messageElement.GetString()
-                    ?? "No fue posible iniciar sesión.";
+                    ?? fallbackMessage;
             }
 
             if (document.RootElement.TryGetProperty(
@@ -100,14 +135,14 @@ public sealed class AuthApiClient
                     out messageElement))
             {
                 return messageElement.GetString()
-                    ?? "No fue posible iniciar sesión.";
+                    ?? fallbackMessage;
             }
         }
         catch (JsonException)
         {
         }
 
-        return "Correo o contraseña incorrectos.";
+        return fallbackMessage;
     }
 }
 
@@ -129,4 +164,13 @@ public sealed record LoginAttemptResult(bool Succeeded, LoginResponse? Response,
             null,
             message);
     }
+}
+
+public sealed record RegistrationAttemptResult(bool Succeeded, RegisterResponse? Response, string? ErrorMessage)
+{
+    public static RegistrationAttemptResult Success(RegisterResponse response) =>
+        new(true, response, null);
+
+    public static RegistrationAttemptResult Failed(string message) =>
+        new(false, null, message);
 }

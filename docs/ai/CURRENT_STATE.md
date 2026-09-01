@@ -1,5 +1,19 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-018 - Tenant Self-Registration UI
+
+TEN-018 implementa la ruta publica /register con los campos BusinessName, FullName, Email y Password del contrato existente. AuthApiClient consume POST /api/auth/register y evita exponer TenantId, TenantCode, DatabaseName, ConnectionString, roles o detalles internos de provisioning.
+
+El endpoint no autentica automaticamente. Un registro correcto redirige a /login?registered=true, donde se muestra confirmacion antes del inicio de sesion normal.
+
+La UI incluye validaciones basicas, prevencion de doble envio, estado de provisioning, errores seguros, enlaces Login/Registro y CSS responsive. No hubo cambios backend, endpoints, contratos, esquema ni migraciones.
+
+Documentacion: docs/technical/SELF_REGISTRATION_UI.md.
+
+PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR, incluido provisioning real controlado y responsive aproximadamente a 390 px.
+
+---
+
 ## Actualizacion TEN-017 - Tenant Settings UI
 
 TEN-017 implementa /configuracion para TENANT_OWNER con carga real de settings, edicion de valores, confirmacion visual y manejo de estados y errores HTTP.

@@ -1,0 +1,103 @@
+.register-card {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 32px;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .08);
+}
+
+.register-header {
+    margin-bottom: 26px;
+    text-align: center;
+}
+
+.register-header h1 {
+    margin: 0;
+    color: #242428;
+    font-size: 2rem;
+}
+
+.register-header p {
+    margin: 8px 0 0;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    color: #3f3f46;
+    font-weight: 600;
+}
+
+.form-group small {
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.form-control {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font: inherit;
+}
+
+.form-control:focus {
+    outline: 2px solid #111827;
+    outline-offset: 1px;
+}
+
+.register-error {
+    margin-bottom: 18px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.register-button {
+    width: 100%;
+    min-height: 46px;
+    padding: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: #111827;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.register-button:disabled {
+    cursor: wait;
+    opacity: .65;
+}
+
+.auth-link {
+    margin: 22px 0 0;
+    color: #6b7280;
+    text-align: center;
+}
+
+.auth-link a {
+    color: #111827;
+    font-weight: 600;
+}
+
+@media (max-width: 480px) {
+    .register-card {
+        padding: 24px 20px;
+    }
+
+    .register-header h1 {
+        font-size: 1.65rem;
+    }
+}
