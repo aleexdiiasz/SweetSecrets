@@ -150,6 +150,8 @@ builder.Services.AddScoped<IPlatformUserAdminService, PlatformUserAdminService>(
 builder.Services.AddScoped<IPlatformUserQueryService, PlatformUserQueryService>();
 
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<ITenantStatusReader, MasterTenantStatusReader>();
+builder.Services.AddScoped<ITenantLoginPolicy, TenantLoginPolicy>();
 builder.Services.AddScoped<IdentityErrorLocalizer>();
 
 builder.Services.AddScoped<IAccountService, AccountService>();

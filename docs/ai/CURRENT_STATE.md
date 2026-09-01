@@ -6,6 +6,8 @@ TEN-025 implementa /admin/tenants y detalle con busqueda/filtro server-side sobr
 
 Los contratos no exponen DatabaseName ni ConnectionString. No se abre TenantDbContext. CurrentTenantResolver ya exige Active, por lo que Suspended bloquea acceso operacional y la reactivacion lo restaura sin tocar datos tenant.
 
+Correccion de validacion manual: AuthenticationService ahora consulta el estado MASTER del TENANT_OWNER despues de credenciales y politicas Identity, y antes de crear UserSession o cookie. Active permite login; Suspended devuelve TENANT_SUSPENDED con mensaje controlado; PLATFORM_ADMIN no consulta estado tenant. /api/auth/me finaliza una sesion existente cuando el tenant deja de estar Active, mientras CurrentTenantResolver conserva el bloqueo de todas las APIs operativas. Suspended -> Active restaura login y operacion sin tocar usuario, password ni tenant DB.
+
 Documentacion: docs/technical/PLATFORM_ADMIN_TENANTS.md. PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR y MASTER real, incluida verificacion de acceso suspendido/reactivado y responsive a 390 px.
 
 ---

@@ -16,19 +16,22 @@ public class AuthenticationService
     private readonly IUserSessionService _sessionService;
     private readonly IPlatformAuditService _auditService;
     private readonly EmailConfirmationLoginPolicy _emailConfirmationPolicy;
+    private readonly ITenantLoginPolicy _tenantLoginPolicy;
 
     public AuthenticationService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IUserSessionService sessionService,
         IPlatformAuditService auditService,
-        EmailConfirmationLoginPolicy emailConfirmationPolicy)
+        EmailConfirmationLoginPolicy emailConfirmationPolicy,
+        ITenantLoginPolicy tenantLoginPolicy)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _sessionService = sessionService;
         _auditService = auditService;
         _emailConfirmationPolicy = emailConfirmationPolicy;
+        _tenantLoginPolicy = tenantLoginPolicy;
     }
 
     public async Task<AuthenticationResult> LoginAsync(
@@ -122,6 +125,15 @@ public class AuthenticationService
             };
         }
 
+        var roles = (await _userManager.GetRolesAsync(user)).ToList();
+        var tenantDecision = await _tenantLoginPolicy.EvaluateAsync(
+            user.TenantId,
+            roles,
+            cancellationToken);
+
+        if (tenantDecision != TenantLoginDecision.Allowed)
+            return TenantAccessDenied(tenantDecision);
+
         var sessionId =
             await _sessionService.StartSessionAsync(
                 user.Id,
@@ -149,8 +161,6 @@ public class AuthenticationService
                     ", ",
                     updateResult.Errors.Select(x => x.Description)));
         }
-
-        var roles = await _userManager.GetRolesAsync(user);
 
         var claims = new List<Claim>
         {
@@ -275,6 +285,21 @@ public class AuthenticationService
             Succeeded = false,
             ErrorCode = "INVALID_CREDENTIALS",
             Message = "Correo o contraseña incorrectos."
+        };
+    }
+
+    private static AuthenticationResult TenantAccessDenied(
+        TenantLoginDecision decision)
+    {
+        return new AuthenticationResult
+        {
+            Succeeded = false,
+            ErrorCode = decision == TenantLoginDecision.Suspended
+                ? "TENANT_SUSPENDED"
+                : "TENANT_UNAVAILABLE",
+            Message = decision == TenantLoginDecision.Suspended
+                ? "La cuenta se encuentra suspendida. Contacta al administrador de la plataforma."
+                : "La cuenta no está disponible para iniciar sesión. Contacta al administrador de la plataforma."
         };
     }
 }
