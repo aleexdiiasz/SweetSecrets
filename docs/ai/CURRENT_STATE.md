@@ -1,5 +1,32 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-016 - Tenant Recipes UI
+
+TEN-016 implementa la interfaz funcional /recetas para TENANT_OWNER: listado, busqueda, alta, edicion, ingredientes, unidades compatibles por MeasurementType, costos del backend, historial y activacion/desactivacion.
+
+Se agrego RecipesApiClient, se reutilizaron ProductsApiClient y UnitsApiClient, y RecipesController quedo restringido a TENANT_OWNER. No requiere migraciones. Detalle: docs/technical/RECIPES_UI.md.
+
+## Validacion funcional en navegador
+
+Se valido correctamente:
+
+- carga real de /recetas y listado existente;
+- alta y edicion de receta;
+- multiplicador inicial 3 y cambio a 4;
+- agregar ingrediente, editar cantidad y eliminar ingrediente;
+- recalculo de costos e historial de costos;
+- desactivar y reactivar receta;
+- conversion GR -> KG: producto con costo $0.300000/g y 0.1 kg con costo $30.00;
+- Recipe.TotalCost = $30.00;
+- Multiplier = 4;
+- SuggestedPrice = $120.00;
+- responsive probado aproximadamente a 390 px;
+- formularios, botones y scroll horizontal correctos.
+
+No se observaron errores visuales ni funcionales.
+
+---
+
 ## Fecha de estado
 
 2026-08-27
