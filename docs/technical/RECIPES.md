@@ -276,6 +276,16 @@ CreatedBy = usuario autenticado
 
 El multiplicador se utiliza para calcular el precio sugerido.
 
+Para una receta nueva, la Web obtiene el valor inicial desde:
+
+```text
+settings.MULTIPLIER
+```
+
+Ese valor se envía en `CreateRecipeRequest.Multiplier` y se persiste como `Recipe.Multiplier`. Desde ese momento pertenece a la receta y puede editarse individualmente.
+
+Cambiar `settings.MULTIPLIER` no modifica ni recalcula recetas existentes.
+
 Regla:
 
 ```text

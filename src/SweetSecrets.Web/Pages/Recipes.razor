@@ -1,13 +1,16 @@
 @page "/recetas"
 @attribute [Authorize(Roles = "TENANT_OWNER")]
+@using System.Globalization
 @using SweetSecrets.Contracts.Products
 @using SweetSecrets.Contracts.Recipes
 @using SweetSecrets.Contracts.Units
 @using SweetSecrets.Web.Services.Products
 @using SweetSecrets.Web.Services.Recipes
+@using SweetSecrets.Web.Services.Settings
 @using SweetSecrets.Web.Services.Units
 @inject ProductsApiClient ProductsApiClient
 @inject RecipesApiClient RecipesApiClient
+@inject SettingsApiClient SettingsApiClient
 @inject UnitsApiClient UnitsApiClient
 
 <PageTitle>Recetas - SweetSecrets</PageTitle>
@@ -15,8 +18,15 @@
 <section class="recipes-page">
     <header class="recipes-header">
         <div><span class="recipes-eyebrow">Producción</span><h1>Recetas</h1><p>Administra ingredientes, costos y precios sugeridos de tu cuenta.</p></div>
-        <button type="button" class="primary-button" @onclick="OpenCreateForm">Nueva receta</button>
+        <button type="button" class="primary-button" disabled="@_isLoadingDefaultMultiplier" @onclick="OpenCreateFormAsync">@(_isLoadingDefaultMultiplier ? "Cargando configuración..." : "Nueva receta")</button>
     </header>
+    @if (_defaultMultiplierError is not null)
+    {
+        <div class="recipes-state recipes-state-error">
+            <span>@_defaultMultiplierError</span>
+            <button type="button" class="secondary-button" disabled="@_isLoadingDefaultMultiplier" @onclick="LoadDefaultMultiplierAsync">Reintentar</button>
+        </div>
+    }
     <div class="recipes-search"><input type="search" placeholder="Buscar receta..." @bind="_searchTerm" @bind:event="oninput" /></div>
 
     @if (_showCreateForm || _showEditForm)
@@ -26,7 +36,7 @@
             <EditForm Model="_recipeForm" OnValidSubmit="SaveRecipeAsync">
                 <div class="form-grid">
                     <div class="form-field"><label>Nombre</label><InputText class="form-control" maxlength="200" @bind-Value="_recipeForm.Name" /></div>
-                    <div class="form-field"><label>Multiplicador</label><InputNumber class="form-control" @bind-Value="_recipeForm.Multiplier" /></div>
+                    <div class="form-field"><label>Multiplicador de esta receta</label><InputNumber class="form-control" @bind-Value="_recipeForm.Multiplier" />@if (_showCreateForm){<small>Valor predeterminado actual de la configuración. Puedes ajustarlo antes de guardar.</small>}</div>
                     <div class="form-field form-field-wide"><label>Descripción</label><InputTextArea class="form-control" maxlength="1000" @bind-Value="_recipeForm.Description" /></div>
                 </div>
                 @if (_formError is not null) { <div class="error-message">@_formError</div> }
@@ -93,15 +103,17 @@
     private readonly RecipeFormModel _recipeForm = new();
     private readonly AddRecipeItemRequest _itemForm = new();
     private string _searchTerm = string.Empty;
-    private string? _errorMessage, _formError, _itemError;
+    private string? _errorMessage, _formError, _itemError, _defaultMultiplierError;
+    private decimal? _defaultMultiplier;
     private Guid? _editingRecipeId, _editingItemId;
-    private bool _isLoading = true, _isLoadingDetail, _isSaving, _isSavingItem, _isChangingState, _showCreateForm, _showEditForm, _showHistory, _isLoadingHistory;
+    private bool _isLoading = true, _isLoadingDetail, _isLoadingDefaultMultiplier, _isSaving, _isSavingItem, _isChangingState, _showCreateForm, _showEditForm, _showHistory, _isLoadingHistory;
     private IEnumerable<RecipeListItemResponse> FilteredRecipes => string.IsNullOrWhiteSpace(_searchTerm) ? _recipes : _recipes.Where(x => x.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<ProductListItemResponse> AvailableProducts => _products.Where(x => x.IsActive && (_selectedRecipe is null || _selectedRecipe.Items.All(i => i.ProductId != x.Id)));
     private IEnumerable<UnitListItemResponse> CompatibleUnits { get { var product = _products.FirstOrDefault(x => x.Id == _itemForm.ProductId); var unit = product is null ? null : _units.FirstOrDefault(x => x.Id == product.UnitId); return unit is null ? [] : _units.Where(x => x.IsActive && x.MeasurementType == unit.MeasurementType); } }
 
-    protected override async Task OnInitializedAsync(){try{var r=RecipesApiClient.GetAllAsync();var p=ProductsApiClient.GetAllAsync();var u=UnitsApiClient.GetAllAsync();await Task.WhenAll(r,p,u);_recipes=await r;_products=await p;_units=await u;}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_errorMessage=Message(ex,"No fue posible cargar las recetas.");}finally{_isLoading=false;}}
-    private void OpenCreateForm(){_showEditForm=false;_editingRecipeId=null;_showCreateForm=true;_formError=null;_recipeForm.Name="";_recipeForm.Description=null;_recipeForm.Multiplier=3m;}
+    protected override async Task OnInitializedAsync(){var multiplierTask=LoadDefaultMultiplierAsync();try{var r=RecipesApiClient.GetAllAsync();var p=ProductsApiClient.GetAllAsync();var u=UnitsApiClient.GetAllAsync();await Task.WhenAll(r,p,u);_recipes=await r;_products=await p;_units=await u;}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_errorMessage=Message(ex,"No fue posible cargar las recetas.");}finally{_isLoading=false;}await multiplierTask;}
+    private async Task LoadDefaultMultiplierAsync(){_isLoadingDefaultMultiplier=true;_defaultMultiplierError=null;try{var setting=await SettingsApiClient.GetByKeyAsync("MULTIPLIER");if(!decimal.TryParse(setting.Value,NumberStyles.AllowDecimalPoint,CultureInfo.InvariantCulture,out var multiplier)||multiplier<=0){_defaultMultiplier=null;_defaultMultiplierError="La configuración MULTIPLIER no contiene un valor válido mayor que cero.";return;}_defaultMultiplier=multiplier;}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_defaultMultiplier=null;_defaultMultiplierError=SettingsMessage(ex,"No fue posible cargar el multiplicador predeterminado para nuevas recetas.");}finally{_isLoadingDefaultMultiplier=false;}}
+    private async Task OpenCreateFormAsync(){await LoadDefaultMultiplierAsync();if(!_defaultMultiplier.HasValue)return;_showEditForm=false;_editingRecipeId=null;_showCreateForm=true;_formError=null;_recipeForm.Name="";_recipeForm.Description=null;_recipeForm.Multiplier=_defaultMultiplier.Value;}
     private void OpenEditForm(RecipeListItemResponse r){_showCreateForm=false;_showEditForm=true;_editingRecipeId=r.Id;_formError=null;_recipeForm.Name=r.Name;_recipeForm.Description=r.Description;_recipeForm.Multiplier=r.Multiplier;}
     private void CloseRecipeForm(){_showCreateForm=false;_showEditForm=false;_editingRecipeId=null;_formError=null;}
     private async Task SaveRecipeAsync(){if(_isSaving)return;_formError=string.IsNullOrWhiteSpace(_recipeForm.Name)?"El nombre es obligatorio.":_recipeForm.Multiplier<=0?"El multiplicador debe ser mayor que cero.":null;if(_formError is not null)return;_isSaving=true;try{if(_editingRecipeId.HasValue)await RecipesApiClient.UpdateAsync(_editingRecipeId.Value,new(){Name=_recipeForm.Name,Description=_recipeForm.Description,Multiplier=_recipeForm.Multiplier});else await RecipesApiClient.CreateAsync(new(){Name=_recipeForm.Name,Description=_recipeForm.Description,Multiplier=_recipeForm.Multiplier});await ReloadRecipesAsync();CloseRecipeForm();}catch(Exception ex)when(ex is HttpRequestException or InvalidOperationException){_formError=Message(ex,"No fue posible guardar la receta.");}finally{_isSaving=false;}}
@@ -117,6 +129,7 @@
     private async Task RefreshAsync(Guid id){_selectedRecipe=await RecipesApiClient.GetByIdAsync(id);await ReloadRecipesAsync();if(_showHistory)_history=await RecipesApiClient.GetCostHistoryAsync(id);}
     private async Task ReloadRecipesAsync()=>_recipes=await RecipesApiClient.GetAllAsync();
     private static string Message(Exception ex,string fallback)=>ex is RecipesApiException&&!string.IsNullOrWhiteSpace(ex.Message)?ex.Message:fallback;
+    private static string SettingsMessage(Exception ex,string fallback)=>ex is SettingsApiException&&!string.IsNullOrWhiteSpace(ex.Message)?ex.Message:fallback;
     private static string FormatReason(string r)=>r switch{"RECIPE_ITEM_ADDED"=>"Ingrediente agregado","RECIPE_ITEM_UPDATED"=>"Ingrediente actualizado","RECIPE_ITEM_REMOVED"=>"Ingrediente eliminado","PRODUCT_UNIT_COST_CHANGED"=>"Cambió el costo del producto","PRODUCT_UNIT_CHANGED"=>"Cambió la unidad del producto","RECIPE_REACTIVATED_COST_SYNC"=>"Sincronización al reactivar",_=>r};
-    private sealed class RecipeFormModel{public string Name{get;set;}="";public string? Description{get;set;}public decimal Multiplier{get;set;}=3m;}
+    private sealed class RecipeFormModel{public string Name{get;set;}="";public string? Description{get;set;}public decimal Multiplier{get;set;}}
 }

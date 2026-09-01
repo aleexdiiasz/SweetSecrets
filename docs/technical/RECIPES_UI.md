@@ -21,6 +21,7 @@ La Web no envía `TenantId`, `DatabaseName` ni `ConnectionString`. Todas las ope
 - `PATCH /api/recipes/{id}/active`
 - `GET /api/products`
 - `GET /api/units`
+- `GET /api/settings/MULTIPLIER`
 
 ## Cliente Web
 
@@ -36,6 +37,16 @@ Se agregó `RecipesApiClient` como servicio scoped. Centraliza las operaciones H
 - costos y precios recibidos del backend, sin recalcularlos en la Web;
 - historial de costos con motivos traducidos para presentación;
 - desactivación y reactivación, incluida la sincronización de costos del backend al reactivar.
+
+## Multiplicador predeterminado
+
+La creación de recetas reutiliza `SettingsApiClient` para consultar `GET /api/settings/MULTIPLIER`. El valor vigente de `settings.MULTIPLIER` aparece como valor inicial al abrir “Nueva receta”; ya no existe un `3m` hardcodeado.
+
+La consulta se repite al abrir el formulario para evitar usar un valor obsoleto. Si el setting no existe, no es un decimal mayor que cero o falla la API, la UI muestra el problema y no abre el alta con un valor inventado.
+
+Al guardar, el valor se envía mediante `CreateRecipeRequest.Multiplier` y queda persistido como `Recipe.Multiplier`. Después de creada, la receta conserva ese valor propio y puede modificarse individualmente desde su edición.
+
+Cambiar `settings.MULTIPLIER` no modifica ni recalcula recetas existentes.
 
 ## Conversiones
 

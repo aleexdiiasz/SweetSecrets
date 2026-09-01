@@ -1,5 +1,19 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-017 - Tenant Settings UI
+
+TEN-017 implementa /configuracion para TENANT_OWNER con carga real de settings, edicion de valores, confirmacion visual y manejo de estados y errores HTTP.
+
+Se agrego SettingsApiClient y se restringio SettingsController completo a PlatformRoles.TenantOwner. La UI valida MULTIPLIER mayor que cero, conserva decimales y envia el valor con InvariantCulture.
+
+settings.MULTIPLIER es el multiplicador predeterminado para nuevas recetas. Recipes.razor lo obtiene mediante SettingsApiClient al abrir el alta y lo envia en CreateRecipeRequest.Multiplier. Al guardar queda persistido como Recipe.Multiplier propio de la receta. Modificar settings.MULTIPLIER no modifica ni recalcula recetas existentes.
+
+Documentacion: docs/technical/SETTINGS_UI.md.
+
+PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR: validar MULTIPLIER 3 -> receta con 3 -> setting 4.5 sin alterar la receta anterior -> nueva receta con 4.5 -> edicion individual a 4, ademas del responsive aproximadamente a 390 px.
+
+---
+
 ## Actualizacion TEN-016 - Tenant Recipes UI
 
 TEN-016 implementa la interfaz funcional /recetas para TENANT_OWNER: listado, busqueda, alta, edicion, ingredientes, unidades compatibles por MeasurementType, costos del backend, historial y activacion/desactivacion.
