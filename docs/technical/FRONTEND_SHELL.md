@@ -57,13 +57,9 @@ TENANT_OWNER autenticado
 
 ## Dashboard
 
-La pagina inicial incorpora un dashboard visual con tarjetas para:
+TEN-022 reemplaza las tarjetas informativas iniciales por un dashboard operacional conectado a `GET /api/dashboard`. Muestra conteos reales de productos y recetas, costo promedio de recetas activas, actividad reciente y accesos rápidos. La API resuelve la base tenant desde la identidad y no acepta identificadores tenant desde Web.
 
-- Productos
-- Recetas
-- Configuracion
-
-Las tarjetas son informativas en TEN-014 y no consumen todavia endpoints operacionales.
+La especificación vigente se encuentra en `docs/technical/DASHBOARD_UI.md`.
 
 ## Paginas placeholder
 

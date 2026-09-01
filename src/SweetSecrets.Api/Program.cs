@@ -27,6 +27,8 @@ using SweetSecrets.Application.Common.Units;
 using SweetSecrets.Infrastructure.Services.Units;
 using SweetSecrets.Application.Common.Email;
 using SweetSecrets.Infrastructure.Services.Email;
+using SweetSecrets.Application.Common.Dashboard;
+using SweetSecrets.Infrastructure.Services.Dashboard;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -191,6 +193,8 @@ builder.Services.AddScoped<ISettingQueryService, SettingQueryService>();
 builder.Services.AddScoped<ISettingCommandService, SettingCommandService>();
 
 builder.Services.AddScoped<IUnitQueryService, UnitQueryService>();
+
+builder.Services.AddScoped<IDashboardQueryService, DashboardQueryService>();
 
 // Add services to the container.
 
