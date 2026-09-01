@@ -41,6 +41,12 @@
     font: inherit;
 }
 
+.forgot-password-link {
+    align-self: flex-end;
+    color: #4b5563;
+    font-size: .88rem;
+}
+
     .form-control:focus {
         outline: 2px solid #111827;
         outline-offset: 1px;

@@ -93,6 +93,74 @@ public sealed class AuthApiClient
         }
     }
 
+    public async Task<PasswordRecoveryAttemptResult> ForgotPasswordAsync(
+        ForgotPasswordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "api/auth/forgot-password",
+                request,
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorMessageAsync(
+                    response,
+                    "No fue posible procesar la solicitud.",
+                    cancellationToken);
+
+                return PasswordRecoveryAttemptResult.Failed(error);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ForgotPasswordResponse>(
+                cancellationToken: cancellationToken);
+
+            return result is null
+                ? PasswordRecoveryAttemptResult.Failed("No fue posible validar la respuesta del servidor.")
+                : PasswordRecoveryAttemptResult.Success(result.Message);
+        }
+        catch (HttpRequestException)
+        {
+            return PasswordRecoveryAttemptResult.Failed("No fue posible conectar con el servidor.");
+        }
+    }
+
+    public async Task<PasswordRecoveryAttemptResult> ResetPasswordAsync(
+        ResetPasswordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "api/auth/reset-password",
+                request,
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorMessageAsync(
+                    response,
+                    "El enlace no es válido o la contraseña no cumple los requisitos.",
+                    cancellationToken);
+
+                return PasswordRecoveryAttemptResult.Failed(error);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ResetPasswordResponse>(
+                cancellationToken: cancellationToken);
+
+            return result is null
+                ? PasswordRecoveryAttemptResult.Failed("No fue posible validar la respuesta del servidor.")
+                : PasswordRecoveryAttemptResult.Success(result.Message);
+        }
+        catch (HttpRequestException)
+        {
+            return PasswordRecoveryAttemptResult.Failed("No fue posible conectar con el servidor.");
+        }
+    }
+
     public async Task LogoutAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -172,5 +240,14 @@ public sealed record RegistrationAttemptResult(bool Succeeded, RegisterResponse?
         new(true, response, null);
 
     public static RegistrationAttemptResult Failed(string message) =>
+        new(false, null, message);
+}
+
+public sealed record PasswordRecoveryAttemptResult(bool Succeeded, string? Message, string? ErrorMessage)
+{
+    public static PasswordRecoveryAttemptResult Success(string message) =>
+        new(true, message, null);
+
+    public static PasswordRecoveryAttemptResult Failed(string message) =>
         new(false, null, message);
 }
