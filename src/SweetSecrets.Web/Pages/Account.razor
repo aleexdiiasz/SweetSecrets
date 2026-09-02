@@ -5,6 +5,7 @@
 @using SweetSecrets.Web.Services.Auth
 
 @inject AuthApiClient AuthApiClient
+@inject NavigationManager Navigation
 
 <PageTitle>Mi cuenta - SweetSecrets</PageTitle>
 
@@ -12,7 +13,7 @@
     <header class="page-header">
         <p class="eyebrow">Cuenta</p>
         <h1>Mi cuenta</h1>
-        <p>Consulta tu información y actualiza tu contraseña.</p>
+        <p>Administra tu información, preferencias y seguridad.</p>
     </header>
 
     @if (_isLoading)
@@ -29,7 +30,8 @@
     else
     {
         <div class="account-grid">
-            <section class="account-card">
+            <section class="account-card personal-card">
+                <span class="account-card-icon" aria-hidden="true">♡</span>
                 <h2>Información personal</h2>
                 <dl class="account-details">
                     <div><dt>Nombre</dt><dd>@_account?.FullName</dd></div>
@@ -37,41 +39,77 @@
                 </dl>
             </section>
 
-            <section class="account-card">
-                <h2>Cambiar contraseña</h2>
-                <p class="card-description">La nueva contraseña debe cumplir la política de seguridad de SweetSecrets.</p>
+            <a class="account-card account-action-card settings-action" href="/configuracion">
+                <span class="account-card-icon" aria-hidden="true">⚙</span>
+                <span><strong>Configuración</strong><small>Preferencias de SweetSecrets</small></span>
+                <span class="account-chevron" aria-hidden="true">→</span>
+            </a>
 
-                <EditForm Model="_password" OnValidSubmit="ChangePasswordAsync">
-                    <div class="form-group">
-                        <label for="current-password">Contraseña actual</label>
-                        <InputText id="current-password" class="form-control" type="password" autocomplete="current-password" @bind-Value="_password.CurrentPassword" />
-                    </div>
-                    <div class="form-group">
-                        <label for="new-password">Nueva contraseña</label>
-                        <InputText id="new-password" class="form-control" type="password" autocomplete="new-password" @bind-Value="_password.NewPassword" />
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm-password">Confirmar nueva contraseña</label>
-                        <InputText id="confirm-password" class="form-control" type="password" autocomplete="new-password" @bind-Value="_confirmation" />
-                    </div>
+            <section class="account-card account-action-card security-card">
+                <span class="account-card-icon" aria-hidden="true">◇</span>
+                <span><strong>Seguridad</strong><small>Cambia la contraseña de tu cuenta</small></span>
+                <button type="button" class="secondary-button" @onclick="OpenPasswordModal">Cambiar contraseña</button>
+            </section>
 
-                    @if (_changeError is not null)
-                    {
-                        <div class="error-message" role="alert">@_changeError</div>
-                    }
-                    @if (_successMessage is not null)
-                    {
-                        <div class="success-message" role="status">@_successMessage</div>
-                    }
+            @if (_successMessage is not null)
+            {
+                <div class="success-message account-success" role="status">@_successMessage</div>
+            }
 
-                    <button type="submit" class="primary-button" disabled="@_isSaving">
-                        @(_isSaving ? "Guardando..." : "Cambiar contraseña")
-                    </button>
-                </EditForm>
+            <section class="account-card account-action-card session-card">
+                <span class="account-card-icon" aria-hidden="true">↪</span>
+                <span><strong>Sesión</strong><small>Cierra tu sesión de forma segura en este dispositivo</small></span>
+                <button type="button" class="logout-account-button" disabled="@_isLoggingOut" @onclick="LogoutAsync">
+                    @(_isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión")
+                </button>
             </section>
         </div>
     }
 </div>
+
+@if (_showPasswordModal)
+{
+    <div class="account-modal-backdrop">
+        <section class="account-modal" role="dialog" aria-modal="true" aria-labelledby="change-password-title">
+            <header class="account-modal-header">
+                <div>
+                    <span class="eyebrow">Seguridad</span>
+                    <h2 id="change-password-title">Cambiar contraseña</h2>
+                </div>
+                <button type="button" class="modal-close" aria-label="Cerrar" disabled="@_isSaving" @onclick="CancelPasswordModal">×</button>
+            </header>
+
+            <p class="card-description">La nueva contraseña debe cumplir la política de seguridad de SweetSecrets.</p>
+
+            <EditForm Model="_password" OnValidSubmit="ChangePasswordAsync">
+                <div class="form-group">
+                    <label for="current-password">Contraseña actual</label>
+                    <InputText id="current-password" class="form-control" type="password" autocomplete="current-password" autofocus @bind-Value="_password.CurrentPassword" />
+                </div>
+                <div class="form-group">
+                    <label for="new-password">Nueva contraseña</label>
+                    <InputText id="new-password" class="form-control" type="password" autocomplete="new-password" @bind-Value="_password.NewPassword" />
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirmar nueva contraseña</label>
+                    <InputText id="confirm-password" class="form-control" type="password" autocomplete="new-password" @bind-Value="_confirmation" />
+                </div>
+
+                @if (_changeError is not null)
+                {
+                    <div class="error-message" role="alert">@_changeError</div>
+                }
+
+                <div class="account-modal-actions">
+                    <button type="button" class="secondary-button" disabled="@_isSaving" @onclick="CancelPasswordModal">Cancelar</button>
+                    <button type="submit" class="primary-button" disabled="@_isSaving">
+                        @(_isSaving ? "Guardando..." : "Cambiar contraseña")
+                    </button>
+                </div>
+            </EditForm>
+        </section>
+    </div>
+}
 
 @code {
     private AccountResponse? _account;
@@ -79,6 +117,8 @@
     private string _confirmation = string.Empty;
     private bool _isLoading = true;
     private bool _isSaving;
+    private bool _isLoggingOut;
+    private bool _showPasswordModal;
     private string? _loadError;
     private string? _changeError;
     private string? _successMessage;
@@ -131,12 +171,50 @@
             }
 
             _successMessage = result.Message;
-            _password = new ChangePasswordRequest();
-            _confirmation = string.Empty;
+            ClosePasswordModal();
         }
         finally
         {
             _isSaving = false;
+        }
+    }
+
+    private void OpenPasswordModal()
+    {
+        ClearPasswordState();
+        _successMessage = null;
+        _showPasswordModal = true;
+    }
+
+    private void CancelPasswordModal() => ClosePasswordModal();
+
+    private void ClosePasswordModal()
+    {
+        _showPasswordModal = false;
+        ClearPasswordState();
+    }
+
+    private void ClearPasswordState()
+    {
+        _password = new ChangePasswordRequest();
+        _confirmation = string.Empty;
+        _changeError = null;
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (_isLoggingOut)
+            return;
+
+        _isLoggingOut = true;
+        try
+        {
+            await AuthApiClient.LogoutAsync();
+            Navigation.NavigateTo("/login", replace: true);
+        }
+        finally
+        {
+            _isLoggingOut = false;
         }
     }
 }
