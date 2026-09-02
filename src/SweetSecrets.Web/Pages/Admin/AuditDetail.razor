@@ -1,0 +1,13 @@
+@page "/admin/audit/{Id:guid}"
+@layout AdminLayout
+@attribute [Authorize(Roles = "PLATFORM_ADMIN")]
+@using SweetSecrets.Contracts.Admin.Audit
+@using SweetSecrets.Web.Services.Admin
+@inject AuditAdminApiClient Api
+<PageTitle>Detalle de auditoría - SweetSecrets</PageTitle>
+<section class="audit-detail"><a class="back" href="/admin/audit">← Volver a auditoría</a>
+@if(loading){<div class="state">Cargando evento...</div>}else if(error is not null){<div class="state error" role="alert">@error <button @onclick="LoadAsync">Reintentar</button></div>}else if(item is null){<div class="state">El evento no existe o ya no está disponible.</div>}else{
+<header><span>Evento de auditoría</span><h1>@item.Action</h1><p>@item.Description</p></header>
+<div class="detail-grid"><article><h2>Contexto</h2><dl><dt>Fecha</dt><dd>@Format(item.CreatedAt)</dd><dt>Entidad</dt><dd>@Value(item.Entity)</dd><dt>Tenant</dt><dd>@Display(item.TenantName,item.TenantCode)</dd><dt>Usuario objetivo</dt><dd>@Display(item.TargetUserName,item.TargetUserEmail)</dd></dl></article><article><h2>Origen</h2><dl><dt>Actor</dt><dd>@Display(item.ActorName,item.ActorEmail)</dd><dt>IP</dt><dd>@Value(item.IpAddress)</dd><dt>User-Agent</dt><dd class="agent">@Value(item.UserAgent)</dd><dt>ID de evento</dt><dd class="technical">@item.Id</dd></dl></article></div>}
+</section>
+@code{[Parameter]public Guid Id{get;set;}private PlatformAuditDetailResponse? item;private bool loading=true;private string? error;protected override Task OnParametersSetAsync()=>LoadAsync();private async Task LoadAsync(){loading=true;error=null;try{item=await Api.GetAsync(Id);}catch(HttpRequestException){error="No fue posible cargar el evento.";}finally{loading=false;}}private static string Display(string? a,string? b)=>!string.IsNullOrWhiteSpace(a)?a:!string.IsNullOrWhiteSpace(b)?b:"No disponible";private static string Value(string? v)=>string.IsNullOrWhiteSpace(v)?"No disponible":v;private static string Format(DateTime d)=>d.ToLocalTime().ToString("dd MMM yyyy HH:mm:ss");}

@@ -1,0 +1,55 @@
+@page "/admin/audit"
+@layout AdminLayout
+@attribute [Authorize(Roles = "PLATFORM_ADMIN")]
+@using SweetSecrets.Contracts.Admin.Audit
+@using SweetSecrets.Web.Services.Admin
+@inject AuditAdminApiClient Api
+<PageTitle>Auditoría - SweetSecrets</PageTitle>
+
+<section class="audit">
+    <header><span>Plataforma</span><h1>Auditoría</h1><p>Explora los eventos administrativos e históricos registrados en MASTER.</p></header>
+    <div class="filters">
+        <label class="wide">Búsqueda<input placeholder="Acción, descripción, actor, tenant o usuario" @bind="search" /></label>
+        <label>Acción<input placeholder="Ej. USER_BLOCKED" @bind="action" /></label>
+        <label>Tenant<input placeholder="Nombre o código" @bind="tenant" /></label>
+        <label>Actor<input placeholder="Nombre o correo" @bind="actor" /></label>
+        <label>Usuario objetivo<input placeholder="Nombre o correo" @bind="targetUser" /></label>
+        <label>Desde<input type="date" @bind="from" /></label>
+        <label>Hasta<input type="date" @bind="to" /></label>
+        <div class="filter-actions"><button @onclick="ApplyAsync" disabled="@loading">Buscar</button><button class="secondary" @onclick="ClearAsync" disabled="@loading">Limpiar</button></div>
+    </div>
+    @if (loading) { <div class="state">Cargando auditoría...</div> }
+    else if (error is not null) { <div class="state error" role="alert">@error <button @onclick="LoadAsync">Reintentar</button></div> }
+    else if (result?.Items.Count == 0) { <div class="state">No hay eventos que coincidan con los filtros.</div> }
+    else if (result is not null)
+    {
+        <p class="count">@result.TotalCount evento(s)</p>
+        <div class="audit-list">
+            @foreach (var item in result.Items)
+            {
+                <a href="@($"/admin/audit/{item.Id}")">
+                    <div><em class="badge @Badge(item.Action)">@item.Action</em><strong>@item.Description</strong></div>
+                    <div><span>Actor</span><strong>@Display(item.ActorName, item.ActorEmail)</strong></div>
+                    <div><span>Tenant</span><strong>@Display(item.TenantName, item.TenantCode)</strong></div>
+                    <time>@Format(item.CreatedAt)</time>
+                </a>
+            }
+        </div>
+        <nav class="pagination" aria-label="Paginación de auditoría"><button @onclick="PreviousAsync" disabled="@(loading || result.Page <= 1)">Anterior</button><span>Página @result.Page de @TotalPages</span><button @onclick="NextAsync" disabled="@(loading || result.Page >= TotalPages)">Siguiente</button></nav>
+    }
+</section>
+
+@code {
+    private PlatformAuditPageResponse? result; private string? search,action,tenant,actor,targetUser,error;
+    private DateTime? from,to; private int page=1; private bool loading=true;
+    private int TotalPages => result is null ? 1 : Math.Max(1,(int)Math.Ceiling(result.TotalCount/(double)result.PageSize));
+    protected override Task OnInitializedAsync()=>LoadAsync();
+    private async Task LoadAsync(){loading=true;error=null;try{result=await Api.SearchAsync(search,action,from,to,tenant,actor,targetUser,page);}catch(HttpRequestException){error="No fue posible cargar la auditoría.";}finally{loading=false;}}
+    private Task ApplyAsync(){page=1;return LoadAsync();}
+    private Task ClearAsync(){search=action=tenant=actor=targetUser=null;from=to=null;page=1;return LoadAsync();}
+    private Task PreviousAsync(){page=Math.Max(1,page-1);return LoadAsync();}
+    private Task NextAsync(){page++;return LoadAsync();}
+    private static string Display(string? primary,string? secondary)=>!string.IsNullOrWhiteSpace(primary)?primary:!string.IsNullOrWhiteSpace(secondary)?secondary:"No disponible";
+    private static string Format(DateTime value)=>value.ToLocalTime().ToString("dd MMM yyyy HH:mm");
+    private static string Badge(string action)=>action.Contains("FAILED",StringComparison.Ordinal)||action.Contains("BLOCKED",StringComparison.Ordinal)||action.Contains("SUSPENDED",StringComparison.Ordinal)?"danger":action.Contains("SUCCESS",StringComparison.Ordinal)||action.Contains("CREATED",StringComparison.Ordinal)||action.Contains("ACTIVATED",StringComparison.Ordinal)||action.Contains("UNBLOCKED",StringComparison.Ordinal)?"success":"neutral";
+}

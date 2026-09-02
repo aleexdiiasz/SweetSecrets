@@ -18,7 +18,7 @@ La presencia es derivada, no tiempo real, y no usa SignalR. Varias sesiones acti
 
 ## Actividad reciente
 
-Tenants y usuarios recientes enlazan a sus detalles administrativos. La auditoría muestra sólo acción, descripción y fecha. El dashboard no expone IP, User-Agent, valores anteriores/nuevos completos ni un explorador global; este último puede ser un issue independiente.
+Tenants y usuarios recientes enlazan a sus detalles administrativos. La auditoría del dashboard muestra sólo acción, descripción y fecha; TEN-028 agrega el explorador global protegido en `/admin/audit`. El resumen no expone IP, User-Agent ni valores anteriores/nuevos.
 
 ## Eficiencia y traducción
 
@@ -40,4 +40,4 @@ La cuadrícula se reduce progresivamente y pasa a una columna aproximadamente a 
 
 Las pruebas cubren rol requerido, conteos/estados mapeados, MASTER vacío, contratos seguros y traducción Npgsql de online y recientes. Queda pendiente la validación funcional en navegador con MASTER real, datos vacíos/reales y responsive aproximadamente a 390 px.
 
-Se descartaron métricas de productos, recetas, ventas, ingresos, utilidad y costos porque pertenecen a bases tenant y no representan salud operacional de plataforma. También quedan fuera health embebido, auditoría completa, notificaciones y presencia en tiempo real.
+Se descartaron métricas de productos, recetas, ventas, ingresos, utilidad y costos porque pertenecen a bases tenant y no representan salud operacional de plataforma. También quedan fuera health embebido, notificaciones y presencia en tiempo real.

@@ -21,7 +21,7 @@ El login devuelve los roles obtenidos por ASP.NET Core Identity. `AuthenticatedA
 
 Incluye sidebar diferenciado, encabezado de plataforma, correo autenticado y logout. No ofrece “Mi cuenta”: TEN-020 y sus endpoints continúan limitados a `TENANT_OWNER`.
 
-Inicio, Tenants, Usuarios y Sesiones son rutas administrativas activas. TEN-025 implementa `/admin/tenants`; TEN-026 implementa `/admin/users`, detalle y `/admin/sessions`; TEN-027 convierte `/admin` en un dashboard operacional real sobre MASTER. Auditoría muestra un resumen reciente y el explorador global continúa pendiente. Detalles: `docs/technical/PLATFORM_ADMIN_TENANTS.md`, `docs/technical/PLATFORM_ADMIN_USERS_SESSIONS.md` y `docs/technical/PLATFORM_ADMIN_DASHBOARD.md`.
+Inicio, Tenants, Usuarios, Sesiones y Auditoría son rutas administrativas activas. TEN-025 implementa `/admin/tenants`; TEN-026 implementa `/admin/users`, detalle y `/admin/sessions`; TEN-027 convierte `/admin` en un dashboard operacional real; TEN-028 habilita `/admin/audit` y su detalle de solo lectura sobre MASTER. Detalles: `docs/technical/PLATFORM_ADMIN_TENANTS.md`, `docs/technical/PLATFORM_ADMIN_USERS_SESSIONS.md`, `docs/technical/PLATFORM_ADMIN_DASHBOARD.md` y `docs/technical/PLATFORM_ADMIN_AUDIT.md`.
 
 ## Seguridad y multi-tenancy
 
@@ -37,6 +37,6 @@ El layout cambia a estructura vertical en pantallas pequeñas. Header, identidad
 
 ## Pruebas
 
-Las pruebas cubren destinos post-login, autorización `PLATFORM_ADMIN`, permanencia de `TENANT_OWNER` en APIs tenant, usuarios/sesiones y el dashboard agregado de plataforma.
+Las pruebas cubren destinos post-login, autorización `PLATFORM_ADMIN`, permanencia de `TENANT_OWNER` en APIs tenant, usuarios/sesiones, dashboard y explorador de auditoría.
 
 PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR: login con ambos roles, rechazo cruzado, recarga directa, logout administrativo y responsive aproximadamente a 390 px.
