@@ -38,14 +38,17 @@ Al iniciar en `Production`, la API exige:
 - `PasswordRecovery__ResetPageBaseUrl` como URL HTTPS absoluta;
 - `EmailConfirmation__ConfirmationPageBaseUrl` como URL HTTPS absoluta.
 - configuración `Email__Smtp__*` válida para host, puerto, remitente y credenciales emparejadas.
+- ruta/nombre de aplicación para claves persistentes de Data Protection;
+- bootstrap admin completo;
+- al menos un proxy o una red confiable y `ForwardLimit` positivo.
 
 Los valores deben suministrarse mediante variables de entorno o un almacén seguro. No existen valores Production ni secretos hardcodeados. Development conserva sus URLs localhost en `appsettings.Development.json` y no queda bloqueado por la validación Production.
 
 También deben configurarse fuera del repositorio:
 
-- URLs públicas de Web y API (`ApiBaseUrl` en Web según el mecanismo de publicación);
+- URL pública HTTPS de Web; el baseline Docker usa API same-origin y no publica `ApiBaseUrl` en el cliente;
 - credenciales PostgreSQL;
-- terminación HTTPS y encabezados del proxy cuando exista;
+- terminación HTTPS y red/CIDR del proxy confiable;
 - proveedor y credenciales de email transaccional.
 
 ## Email Production
@@ -55,6 +58,8 @@ TEN-029 registra un transporte SMTP estándar con MailKit en ambientes no Develo
 ## Cookies, HTTPS y CORS
 
 La cookie `SweetSecrets.Auth` permanece `HttpOnly`, `Secure`, `SameSite=Lax`, con expiración de ocho horas. La API conserva `UseHttpsRedirection`. CORS ahora obtiene orígenes desde `Cors:AllowedOrigins`, permite credenciales y no usa comodines.
+
+TEN-031 procesa `X-Forwarded-For`, `X-Forwarded-Proto` y `X-Forwarded-Host` antes de redirección, health y seguridad. La confianza se restringe a proxies/redes configurados y a un número explícito de saltos. Las claves de Data Protection se guardan en un volumen persistente para que cookies y tokens sobrevivan recreaciones de API.
 
 ## Manejo de errores y logging
 
@@ -72,6 +77,8 @@ Una prueba de pipeline ejecuta liveness y readiness delante de un middleware pos
 
 - validación SMTP Production-like con una cuenta de prueba;
 - ajuste operacional de límites de autenticación;
-- infraestructura de deployment, reverse proxy y certificados;
+- terminador TLS y certificados externos al baseline Docker;
 - observabilidad externa y monitoreo de bases tenant fuera de banda;
-- prueba funcional en un entorno Production-like con PostgreSQL real.
+- prueba funcional final en el ambiente Production real.
+
+La topología, comandos, migraciones explícitas y smoke Production-like de TEN-031 están documentados en `docs/technical/DOCKER_PRODUCTION_DEPLOYMENT.md`.

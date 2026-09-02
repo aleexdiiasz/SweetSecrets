@@ -33,6 +33,7 @@ using SweetSecrets.Application.Common.Tenants;
 using SweetSecrets.Infrastructure.Services.Tenants;
 using SweetSecrets.Api.Configuration;
 using SweetSecrets.Api.Health;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +41,13 @@ var builder = WebApplication.CreateBuilder(args);
 ProductionConfigurationValidator.Validate(
     builder.Configuration,
     builder.Environment);
+
+builder.Services.AddProductionDataProtection(
+    builder.Configuration,
+    builder.Environment);
+
+builder.Services.AddTrustedForwardedHeaders(
+    builder.Configuration);
 
 var masterConnectionString =
     builder.Configuration.GetConnectionString("MasterDatabase")
@@ -247,6 +255,14 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
+if (args.Contains("--migrate-master", StringComparer.OrdinalIgnoreCase))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    var masterDbContext = migrationScope.ServiceProvider.GetRequiredService<MasterDbContext>();
+    await masterDbContext.Database.MigrateAsync();
+    return;
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler();
@@ -265,6 +281,8 @@ if (app.Environment.IsDevelopment())
             "SweetSecrets API v1");
     });
 }
+
+app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
 

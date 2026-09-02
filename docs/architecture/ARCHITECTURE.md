@@ -133,6 +133,12 @@ Tampoco:
 Controller
 -> SQL directo
 
+## Topología Docker de producción
+
+TEN-031 implementa una baseline con Nginx sirviendo Blazor WebAssembly y actuando como reverse proxy same-origin. Solo Nginx publica puerto; API y PostgreSQL quedan en una red Docker privada. PostgreSQL mantiene MASTER y las bases tenant en un volumen, y la API mantiene sus claves de Data Protection en otro volumen.
+
+Las migraciones MASTER se ejecutan en un contenedor one-shot antes de la API. El proceso API normal no migra al arrancar. El provisioning conserva la creación y migración de cada tenant nuevo; la coordinación de migraciones para tenants existentes sigue siendo una responsabilidad operacional pendiente.
+
 ## Multi-tenancy
 
 Modelo elegido:

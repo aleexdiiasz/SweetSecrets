@@ -52,6 +52,10 @@ Características:
 - sliding expiration;
 - duración configurada de 8 horas.
 
+En el baseline Docker de TEN-031, el key ring de ASP.NET Core Data Protection se comparte mediante un volumen persistente y un nombre de aplicación estable. Esto evita invalidar cookies por una recreación ordinaria del contenedor API. El volumen contiene material sensible y debe respaldarse y protegerse.
+
+La API solo interpreta encabezados reenviados desde proxies/redes configurados. El middleware de forwarded headers se ejecuta antes de HTTPS, rate limiting y autenticación para que esquema, host e IP usados por seguridad correspondan al salto confiable.
+
 ## Login
 
 Endpoint:
