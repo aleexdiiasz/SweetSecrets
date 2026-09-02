@@ -139,6 +139,10 @@ TEN-031 implementa una baseline con Nginx sirviendo Blazor WebAssembly y actuand
 
 Las migraciones MASTER se ejecutan en un contenedor one-shot antes de la API. El proceso API normal no migra al arrancar. El provisioning conserva la creación y migración de cada tenant nuevo; la coordinación de migraciones para tenants existentes sigue siendo una responsabilidad operacional pendiente.
 
+## Unidad de backup
+
+Por el modelo database-per-tenant, la unidad completa de recuperación es MASTER + todas las bases listadas en `MASTER.tenants.DatabaseName` + el key ring Data Protection. Un dump aislado no representa la plataforma completa. TEN-032 usa snapshots consistentes por base con `pg_dump -Fc`; no existe una transacción distribuida entre bases, por lo que el backup es coordinado y debe reducir escrituras durante la ventana operacional.
+
 ## Multi-tenancy
 
 Modelo elegido:

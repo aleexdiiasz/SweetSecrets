@@ -14,6 +14,13 @@ deploy/secrets/
 # User-specific files
 *.rsuser
 *.suo
+
+# Operational backups and database dumps
+backups/
+*.dump
+deploy/.env
+deploy/.env.*
+!deploy/.env.example
 *.user
 *.userosscache
 *.sln.docstates

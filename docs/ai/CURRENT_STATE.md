@@ -1,5 +1,18 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-032 - Backup & Recovery
+
+TEN-032 agrega scripts PowerShell 7 en deploy/scripts para backup completo, verificacion y restore seguro usando pg_dump/pg_restore dentro del contenedor PostgreSQL 18.6, sin publicar 5432. La unidad completa es MASTER + todas las bases descubiertas desde tenants.DatabaseName, sin filtrar estado, + Data Protection. Cada dump usa formato custom.
+
+Cada backup crea directorio UTC y manifest versionado con estado, version PostgreSQL, tenants/estados, inventario, tamanos y SHA-256; no contiene secretos ni keys. Cualquier tenant referenciado ausente, dump fallido o key ring vacio deja manifest Failed y exit 1. Verify rechaza corrupcion, archivos extra/faltantes/duplicados, rutas inseguras e inventario inconsistente.
+
+Restore valida todo antes de operar, crea nombres aislados por defecto, nunca sobrescribe ni elimina bases y soporta conjunto completo o un tenant. Valida __EFMigrationsHistory y tablas MASTER/tenant; Data Protection solo se copia a una ruta explicita vacia. Se documentan consistencia por base, desfase de restore selectivo, DR, retencion 7/4/12, RPO objetivo 24 h, RTO medible, cifrado y copia off-site.
+
+Prueba Docker aislada: backup 3.92 s y restore completo 9.09 s; MASTER, dos tenants Active/Suspended, datos reconocibles, migrations y key checksum recuperados. Restore selectivo correcto; sobrescritura, dump alterado, archivo faltante y tenant sin DB fueron rechazados. Documentacion: docs/technical/BACKUP_RECOVERY.md.
+
+PENDIENTES: storage/secret manager Production, automatizacion y alertas, backups cifrados off-site, ejercicios periodicos, PITR/WAL futuro y mediciones con volumen Production real.
+
+---
 ## Actualizacion TEN-031 - Docker / Production Deployment Baseline
 
 TEN-031 agrega imagenes multi-stage para API .NET 10 y Web Blazor/Nginx, mas Compose Production con PostgreSQL 18.6. Solo Web publica puerto; /api y /health se enrutan same-origin hacia la API y API/PostgreSQL quedan en la red privada. Web y API se ejecutan sin root.
