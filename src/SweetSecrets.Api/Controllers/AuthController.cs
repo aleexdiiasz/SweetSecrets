@@ -5,6 +5,8 @@ using SweetSecrets.Contracts.Auth;
 using SweetSecrets.Application.Common.Authentication;
 using SweetSecrets.Application.Common.Registration;
 using SweetSecrets.Application.Common.Security;
+using Microsoft.AspNetCore.RateLimiting;
+using SweetSecrets.Api.Configuration;
 
 namespace SweetSecrets.Api.Controllers;
 
@@ -37,6 +39,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("login")]
+    [EnableRateLimiting(PublicAuthRateLimitPolicies.Login)]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         var result = await _authenticationService.LoginAsync(
@@ -95,6 +98,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting(PublicAuthRateLimitPolicies.Register)]
     public async Task<ActionResult<RegisterResponse>> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
         try
@@ -138,6 +142,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(PublicAuthRateLimitPolicies.EmailDelivery)]
     public async Task<ActionResult<ForgotPasswordResponse>> ForgotPassword(
         ForgotPasswordRequest request,
         CancellationToken cancellationToken)
@@ -159,6 +164,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(PublicAuthRateLimitPolicies.TokenValidation)]
     public async Task<ActionResult<ResetPasswordResponse>> ResetPassword(
         ResetPasswordRequest request,
         CancellationToken cancellationToken)
@@ -180,6 +186,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("resend-confirmation")]
     [AllowAnonymous]
+    [EnableRateLimiting(PublicAuthRateLimitPolicies.EmailDelivery)]
     public async Task<ActionResult<ResendEmailConfirmationResponse>> ResendConfirmation(
         ResendEmailConfirmationRequest request,
         CancellationToken cancellationToken)
@@ -201,6 +208,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("confirm-email")]
     [AllowAnonymous]
+    [EnableRateLimiting(PublicAuthRateLimitPolicies.TokenValidation)]
     public async Task<ActionResult<ConfirmEmailResponse>> ConfirmEmail(
         ConfirmEmailRequest request,
         CancellationToken cancellationToken)

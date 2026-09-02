@@ -162,14 +162,7 @@ builder.Services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
 builder.Services.AddScoped<IEmailConfirmationService, EmailConfirmationService>();
 builder.Services.AddScoped<EmailConfirmationLoginPolicy>();
 
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddScoped<ITransactionalEmailSender, DevelopmentTransactionalEmailSender>();
-}
-else
-{
-    builder.Services.AddScoped<ITransactionalEmailSender, UnconfiguredTransactionalEmailSender>();
-}
+builder.Services.AddTransactionalEmailDelivery(builder.Configuration, builder.Environment);
 
 builder.Services.AddScoped<ITenantDatabaseManager, PostgresTenantDatabaseManager>();
 
@@ -248,6 +241,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddAuthorization();
+builder.Services.AddPublicAuthRateLimiting(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 
@@ -277,6 +271,8 @@ app.UseHttpsRedirection();
 app.UseOperationalHealthChecks();
 
 app.UseCors("SweetSecretsWeb");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 

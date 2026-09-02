@@ -211,6 +211,16 @@ Configuración inicial:
 - 5 intentos fallidos;
 - bloqueo temporal de 15 minutos.
 
+## Rate limiting público
+
+TEN-029 protege por `RemoteIpAddress` los POST públicos de login, registro, recuperación, reenvío, reset y confirmación mediante políticas oficiales ASP.NET Core de ventana fija. Al exceder el límite devuelve 429 con un mensaje español genérico. Forgot Password y reenvío conservan anti-enumeración; health y endpoints administrativos no reciben estas políticas.
+
+La IP de proxy no se toma desde headers arbitrarios. La configuración de `ForwardedHeaders` y proxies confiables corresponde al deployment de TEN-030.
+
+## Email Production
+
+Development conserva archivos locales. Production exige `Email:Smtp` y entrega con MailKit detrás de `ITransactionalEmailSender`. No se registran credenciales SMTP, destinatarios, cuerpos, tokens ni enlaces completos.
+
 ## Secretos
 
 Nunca almacenar:
@@ -267,5 +277,5 @@ El reenvío usa una respuesta genérica para correos inexistentes, confirmados, 
 
 - expiración avanzada de sesiones;
 - invalidación periódica basada en SecurityStamp;
-- rate limiting de login;
+- ajuste operacional de límites y evaluación futura de CAPTCHA para registro;
 - pruebas automatizadas de autenticación.

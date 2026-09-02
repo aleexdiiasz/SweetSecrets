@@ -1,3 +1,5 @@
+using SweetSecrets.Infrastructure.Services.Email;
+
 namespace SweetSecrets.Api.Configuration;
 
 public static class ProductionConfigurationValidator
@@ -34,6 +36,16 @@ public static class ProductionConfigurationValidator
         RequireHttpsUrl(
             configuration["EmailConfirmation:ConfirmationPageBaseUrl"],
             "EmailConfirmation:ConfirmationPageBaseUrl");
+
+        RequireValue(configuration["Email:Smtp:Host"], "Email:Smtp:Host");
+        if (!int.TryParse(configuration["Email:Smtp:Port"], out var smtpPort) || smtpPort is < 1 or > 65535)
+            throw new InvalidOperationException("La configuración requerida 'Email:Smtp:Port' debe estar entre 1 y 65535 en Production.");
+        RequireEmail(configuration["Email:Smtp:FromEmail"], "Email:Smtp:FromEmail");
+        RequireValue(configuration["Email:Smtp:FromName"], "Email:Smtp:FromName");
+        var username = configuration["Email:Smtp:Username"];
+        var password = configuration["Email:Smtp:Password"];
+        if (string.IsNullOrWhiteSpace(username) != string.IsNullOrWhiteSpace(password))
+            throw new InvalidOperationException("Email:Smtp:Username y Email:Smtp:Password deben configurarse juntos en Production.");
     }
 
     private static void RequireValue(string? value, string key)
@@ -53,5 +65,11 @@ public static class ProductionConfigurationValidator
             throw new InvalidOperationException(
                 $"La configuración requerida '{key}' debe ser una URL HTTPS absoluta en Production.");
         }
+    }
+
+    private static void RequireEmail(string? value, string key)
+    {
+        if (!SmtpOptionsValidator.IsValidEmail(value))
+            throw new InvalidOperationException($"La configuración requerida '{key}' debe ser un correo válido en Production.");
     }
 }

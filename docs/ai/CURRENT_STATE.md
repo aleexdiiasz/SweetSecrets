@@ -1,5 +1,14 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-029 - Production Email Delivery & Rate Limiting
+
+TEN-029 mantiene ITransactionalEmailSender y agrega SMTP Production estandar mediante SmtpTransactionalEmailSender + MailKitSmtpTransport. Development conserva %TEMP%/SweetSecrets/email. Production valida Email:Smtp (host, puerto, remitente y credenciales emparejadas) antes del startup; no existen secretos ni valores reales en Git y UnconfiguredTransactionalEmailSender deja de registrarse.
+
+Los POST publicos login, register, forgot-password, resend-confirmation, reset-password y confirm-email usan politicas ASP.NET Core FixedWindow diferenciadas por RemoteIpAddress, cola cero y configuracion RateLimiting:PublicAuth. HTTP 429 devuelve un JSON minimo, generico y en espanol; AuthApiClient muestra el mismo mensaje sin romper anti-enumeracion. Health y endpoints administrativos no estan limitados.
+
+No se confia en X-Forwarded-For arbitrario. ForwardedHeaders y proxies confiables quedan para TEN-030. El sender no registra destinatario, cuerpo, token, enlace o credenciales y sanitiza fallos SMTP. Documentacion: docs/technical/PRODUCTION_EMAIL_RATE_LIMITING.md. PENDIENTE PRUEBA PRODUCTION-LIKE con SMTP real y ajuste operacional de limites.
+
+---
 ## Actualizacion TEN-028 - PLATFORM_ADMIN Audit Explorer
 
 TEN-028 habilita /admin/audit y /admin/audit/{id} como explorador global, historico y de solo lectura para PLATFORM_ADMIN. Reutiliza PlatformAuditLog e IPlatformAuditService; agrega una capa de consulta separada exclusivamente sobre MasterDbContext, sin TenantDbContext ni recorrido de bases tenant.

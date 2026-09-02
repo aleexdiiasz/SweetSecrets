@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
+using System.Net;
 using SweetSecrets.Contracts.Auth;
 using SweetSecrets.Web.Auth;
 
@@ -7,6 +8,8 @@ namespace SweetSecrets.Web.Services.Auth;
 
 public sealed class AuthApiClient
 {
+    internal const string TooManyRequestsMessage = "Has realizado demasiados intentos. Intenta nuevamente en unos minutos.";
+
     private readonly HttpClient _httpClient;
     private readonly ApiAuthenticationStateProvider _authenticationStateProvider;
 
@@ -270,6 +273,9 @@ public sealed class AuthApiClient
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            return (TooManyRequestsMessage, "RATE_LIMITED");
+
         try
         {
             using var document = await JsonDocument.ParseAsync(
@@ -294,6 +300,9 @@ public sealed class AuthApiClient
 
     private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, string fallbackMessage, CancellationToken cancellationToken)
     {
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            return TooManyRequestsMessage;
+
         try
         {
             using var document =
