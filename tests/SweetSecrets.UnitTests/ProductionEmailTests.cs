@@ -79,7 +79,11 @@ public sealed class ProductionEmailTests
         ["PasswordRecovery:ResetPageBaseUrl"]="https://app.example.com/reset-password",
         ["EmailConfirmation:ConfirmationPageBaseUrl"]="https://app.example.com/confirm-email",
         ["Email:Smtp:Host"]="smtp.example.com",["Email:Smtp:Port"]="587",
-        ["Email:Smtp:FromEmail"]="no-reply@example.com",["Email:Smtp:FromName"]="SweetSecrets"
+        ["Email:Smtp:FromEmail"]="no-reply@example.com",["Email:Smtp:FromName"]="SweetSecrets",
+        ["DataProtection:KeysPath"]="/keys",["DataProtection:ApplicationName"]="SweetSecrets",
+        ["ForwardedHeaders:KnownNetworks:0"]="172.30.0.0/24",["ForwardedHeaders:ForwardLimit"]="1",
+        ["BootstrapAdmin:Email"]="admin@example.com",["BootstrapAdmin:Password"]="external-secret",
+        ["BootstrapAdmin:FullName"]="Platform Admin"
     };
     private sealed class RecordingTransport:ISmtpTransport{public SmtpEnvelope? Message{get;private set;}public Task SendAsync(SmtpEnvelope message,SmtpOptions options,CancellationToken cancellationToken=default){Message=message;return Task.CompletedTask;}}
     private sealed class ThrowingTransport:ISmtpTransport{public Task SendAsync(SmtpEnvelope message,SmtpOptions options,CancellationToken cancellationToken=default)=>throw new InvalidOperationException("SMTP rejected");}

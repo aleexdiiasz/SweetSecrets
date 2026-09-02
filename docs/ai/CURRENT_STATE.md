@@ -1,5 +1,18 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-031 - Docker / Production Deployment Baseline
+
+TEN-031 agrega imagenes multi-stage para API .NET 10 y Web Blazor/Nginx, mas Compose Production con PostgreSQL 18.6. Solo Web publica puerto; /api y /health se enrutan same-origin hacia la API y API/PostgreSQL quedan en la red privada. Web y API se ejecutan sin root.
+
+MASTER se migra mediante el servicio one-shot migrate-master antes de arrancar API; el startup normal no migra. El provisioning de tenants nuevos conserva Database.MigrateAsync. La actualizacion coordinada de bases tenant existentes queda pendiente operacional. PostgreSQL y las claves Data Protection usan volumenes persistentes.
+
+Production exige configuracion externa para PostgreSQL, URL publica HTTPS, SMTP, bootstrap admin, Data Protection y proxy confiable. ForwardedHeaders acepta X-Forwarded-For/Proto/Host antes de seguridad, con una red conocida y ForwardLimit=1; no confia globalmente en encabezados del cliente. Web usa API same-origin y no contiene secretos ni URL interna.
+
+Se valido compose config, build de imagenes y un smoke aislado: migracion/arranque, SPA y refresh directo, health live/ready, 401 anonimo, exposicion exclusiva de Web, limite 429, reinicios con persistencia de DB/migraciones/key ring. El stack temporal fue desmontado sin borrar volumenes. Documentacion: docs/technical/DOCKER_PRODUCTION_DEPLOYMENT.md.
+
+PENDIENTES: TLS/DNS/firewall, gestor de secretos, backups y restore, migracion de tenants existentes, observabilidad, SMTP real y smoke en el ambiente Production definitivo.
+
+---
 ## Actualizacion TEN-030 - UI/UX Redesign + Design System
 
 Ajuste responsive: la navegacion tenant final contiene Inicio, Productos, Recetas y Cuenta. Configuracion se conserva fuera del menu y se abre desde Cuenta. Desktop de puntero fino conserva sidebar desde 1280 px; hasta 1279 px y en dispositivos con hover none o pointer coarse se utiliza header + contenido + bottom navigation, incluida tablet horizontal ancha.

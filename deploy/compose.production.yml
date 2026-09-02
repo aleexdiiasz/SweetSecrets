@@ -1,0 +1,95 @@
+name: sweetsecrets
+
+services:
+  postgres:
+    image: postgres:18.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: sweetsecrets_master
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d sweetsecrets_master"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  migrate-master:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    restart: "no"
+    command: ["--migrate-master"]
+    environment: &api-environment
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__MasterDatabase: ${MASTER_CONNECTION_STRING:?MASTER_CONNECTION_STRING is required}
+      Cors__AllowedOrigins__0: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}
+      PasswordRecovery__ResetPageBaseUrl: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}/reset-password
+      EmailConfirmation__ConfirmationPageBaseUrl: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}/confirm-email
+      EmailConfirmation__EnforceForAccountsCreatedAfterUtc: "2026-09-01T00:00:00Z"
+      Email__Smtp__Host: ${SMTP_HOST:?SMTP_HOST is required}
+      Email__Smtp__Port: ${SMTP_PORT:-587}
+      Email__Smtp__UseSsl: ${SMTP_USE_SSL:-false}
+      Email__Smtp__Username: ${SMTP_USERNAME:-}
+      Email__Smtp__Password: ${SMTP_PASSWORD:-}
+      Email__Smtp__FromEmail: ${SMTP_FROM_EMAIL:?SMTP_FROM_EMAIL is required}
+      Email__Smtp__FromName: ${SMTP_FROM_NAME:-SweetSecrets}
+      BootstrapAdmin__Email: ${BOOTSTRAP_ADMIN_EMAIL:?BOOTSTRAP_ADMIN_EMAIL is required}
+      BootstrapAdmin__Password: ${BOOTSTRAP_ADMIN_PASSWORD:?BOOTSTRAP_ADMIN_PASSWORD is required}
+      BootstrapAdmin__FullName: ${BOOTSTRAP_ADMIN_FULL_NAME:?BOOTSTRAP_ADMIN_FULL_NAME is required}
+      DataProtection__KeysPath: /home/app/.aspnet/DataProtection-Keys
+      DataProtection__ApplicationName: SweetSecrets
+      ForwardedHeaders__ForwardLimit: 1
+      ForwardedHeaders__KnownNetworks__0: 172.30.0.0/24
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    restart: unless-stopped
+    environment: *api-environment
+    volumes:
+      - dataprotection_keys:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      migrate-master:
+        condition: service_completed_successfully
+    networks:
+      - backend
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_HTTP_PORT:-8080}:8080"
+    depends_on:
+      - api
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider --header='X-Forwarded-Proto: https' http://127.0.0.1:8080/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  postgres_data:
+  dataprotection_keys:

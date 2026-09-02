@@ -123,7 +123,14 @@ public sealed class HealthCheckTests
             ["Email:Smtp:Host"] = "smtp.example.com",
             ["Email:Smtp:Port"] = "587",
             ["Email:Smtp:FromEmail"] = "no-reply@example.com",
-            ["Email:Smtp:FromName"] = "SweetSecrets"
+            ["Email:Smtp:FromName"] = "SweetSecrets",
+            ["DataProtection:KeysPath"] = "/keys",
+            ["DataProtection:ApplicationName"] = "SweetSecrets",
+            ["ForwardedHeaders:KnownNetworks:0"] = "172.30.0.0/24",
+            ["ForwardedHeaders:ForwardLimit"] = "1",
+            ["BootstrapAdmin:Email"] = "admin@example.com",
+            ["BootstrapAdmin:Password"] = "external-secret",
+            ["BootstrapAdmin:FullName"] = "Platform Admin"
         });
 
         ProductionConfigurationValidator.Validate(configuration, new TestEnvironment(Environments.Production));

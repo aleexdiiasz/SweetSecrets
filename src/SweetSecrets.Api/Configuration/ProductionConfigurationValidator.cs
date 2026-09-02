@@ -46,6 +46,24 @@ public static class ProductionConfigurationValidator
         var password = configuration["Email:Smtp:Password"];
         if (string.IsNullOrWhiteSpace(username) != string.IsNullOrWhiteSpace(password))
             throw new InvalidOperationException("Email:Smtp:Username y Email:Smtp:Password deben configurarse juntos en Production.");
+
+        RequireValue(configuration["DataProtection:KeysPath"], "DataProtection:KeysPath");
+        RequireValue(configuration["DataProtection:ApplicationName"], "DataProtection:ApplicationName");
+
+        var knownProxies = configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [];
+        var knownNetworks = configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [];
+        if (knownProxies.Length == 0 && knownNetworks.Length == 0)
+            throw new InvalidOperationException("ForwardedHeaders debe definir al menos un KnownProxy o KnownNetwork en Production.");
+        if (knownProxies.Any(proxy => !System.Net.IPAddress.TryParse(proxy, out _)))
+            throw new InvalidOperationException("ForwardedHeaders:KnownProxies contiene una dirección IP inválida.");
+        if (knownNetworks.Any(network => !System.Net.IPNetwork.TryParse(network, out _)))
+            throw new InvalidOperationException("ForwardedHeaders:KnownNetworks contiene una red CIDR inválida.");
+        if (configuration.GetValue<int?>("ForwardedHeaders:ForwardLimit") is not > 0)
+            throw new InvalidOperationException("ForwardedHeaders:ForwardLimit debe ser mayor que cero en Production.");
+
+        RequireValue(configuration["BootstrapAdmin:Email"], "BootstrapAdmin:Email");
+        RequireValue(configuration["BootstrapAdmin:Password"], "BootstrapAdmin:Password");
+        RequireValue(configuration["BootstrapAdmin:FullName"], "BootstrapAdmin:FullName");
     }
 
     private static void RequireValue(string? value, string key)

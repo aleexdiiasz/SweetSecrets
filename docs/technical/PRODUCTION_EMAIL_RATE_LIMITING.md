@@ -60,10 +60,10 @@ La respuesta no contiene email, existencia de cuenta ni estado de confirmación.
 
 ## Dirección IP y reverse proxy
 
-TEN-029 usa exclusivamente `RemoteIpAddress`; no confía en `X-Forwarded-For` arbitrario. TEN-030 debe configurar `ForwardedHeaders` y redes/proxies conocidos según el deployment antes de depender de la IP original detrás del reverse proxy. No se habilita una política insegura de confianza global.
+TEN-029 usa exclusivamente `RemoteIpAddress`; no confía directamente en `X-Forwarded-For`. TEN-031 configura `ForwardedHeaders` antes del rate limiter y acepta un solo salto únicamente desde la red Docker conocida. Nginx agrega la dirección TCP del cliente a la cadena, por lo que un valor arbitrario antepuesto por el cliente no sustituye la IP normalizada. Si cambia la topología se deben configurar explícitamente la red/proxy y el número de saltos; no se habilita confianza global.
 
 ## Pruebas y limitaciones
 
 Las pruebas cubren selección Development/Production, validación SMTP, configuración incompleta, ausencia de secretos en errores, construcción del mensaje, fallo sanitizado, asignación de políticas, admisión/rechazo, respuesta 429 y exclusión de endpoints administrativos/health.
 
-No se conectan servidores SMTP reales en pruebas. Quedan pendientes una prueba Production-like con una cuenta SMTP de prueba, ajuste operacional de límites, proxies confiables en deployment y evaluación futura de CAPTCHA si el abuso de registro lo requiere.
+No se conectan servidores SMTP reales en pruebas. TEN-031 validó el cableado Production-like con configuración SMTP sintáctica, sin entregar correo, y comprobó el límite de login a través de Nginx. Quedan pendientes una prueba con una cuenta SMTP real, ajuste operacional de límites y evaluación futura de CAPTCHA si el abuso de registro lo requiere.

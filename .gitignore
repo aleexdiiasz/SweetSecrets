@@ -5,6 +5,11 @@
 
 # dotenv files
 .env
+.env.production
+deploy/.env
+deploy/.env.production
+deploy/secrets/
+*.secret
 
 # User-specific files
 *.rsuser
