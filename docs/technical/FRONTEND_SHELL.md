@@ -18,10 +18,10 @@ feature/TEN-014-tenant-owner-shell
 
 Se reemplazo el MainLayout del template por una estructura con:
 
-- sidebar
+- sidebar exclusivo de escritorio
 - header
 - area principal de contenido
-- logout global
+- navegación inferior fija para móvil y tablet
 - comportamiento responsive
 
 ## Navegacion
@@ -31,27 +31,27 @@ El menu principal contiene:
 - Inicio
 - Productos
 - Recetas
-- Configuracion
+- Cuenta
 
 Rutas:
 
 - /
 - /productos
 - /recetas
-- /configuracion
+- /cuenta
 
 Las rutas operacionales estan protegidas con TENANT_OWNER.
 
+`/configuracion` continúa protegida y funcional, pero no forma parte del menú principal. El acceso normal es Cuenta -> Configuración -> `/configuracion`, y Configuración ofrece un enlace claro para volver a Cuenta.
+
 ## Logout
 
-Cerrar sesion fue movido desde Home hacia MainLayout.
-
-Esto permite cerrar sesion desde cualquier pantalla que utilice el shell.
+TEN-030 concentra Cerrar sesión dentro de `/cuenta`. MainLayout, sidebar y navegación inferior no muestran logout. Se conserva exactamente el flujo existente:
 
 Flujo:
 
 TENANT_OWNER autenticado
--> Cerrar sesion
+-> Cuenta -> Cerrar sesion
 -> POST /api/auth/logout
 -> /login
 
@@ -73,12 +73,14 @@ Su objetivo es dejar completa la navegacion del shell antes de implementar cada 
 
 ## Responsive
 
-Validado manualmente aproximadamente a 390 px:
+La arquitectura responsive tenant es:
 
-- sidebar pasa a la parte superior
-- contenido queda debajo
-- tarjetas del dashboard pasan a una columna
-- logout permanece visible y funcional
+- Desktop con puntero fino y ancho desde 1280 px: sidebar persistente.
+- Móvil y tablet hasta 1279 px: header compacto, contenido y bottom navigation fija.
+- Dispositivos con `hover: none` o `pointer: coarse`: bottom navigation aunque la tablet horizontal alcance o supere 1280 px.
+- Móvil hasta 760 px: grids y formularios de una columna, tablas transformadas en cards.
+
+La barra inferior respeta safe areas, reserva padding de contenido y muestra Inicio, Productos, Recetas y Cuenta. Esto cubre móvil vertical/horizontal y tablet vertical/horizontal sin convertir una tablet ancha automáticamente en desktop.
 
 ## Validacion funcional
 
@@ -87,9 +89,10 @@ Comprobado:
 - Inicio navega correctamente
 - Productos navega correctamente
 - Recetas navega correctamente
-- Configuracion navega correctamente
+- Cuenta navega correctamente
+- Configuracion se abre desde Cuenta y permite volver
 - opcion activa cambia visualmente
-- logout funciona desde el header
+- logout funciona desde Cuenta
 - responsive funciona
 
 ## Build

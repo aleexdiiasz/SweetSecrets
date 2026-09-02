@@ -1,5 +1,20 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-030 - UI/UX Redesign + Design System
+
+Ajuste responsive: la navegacion tenant final contiene Inicio, Productos, Recetas y Cuenta. Configuracion se conserva fuera del menu y se abre desde Cuenta. Desktop de puntero fino conserva sidebar desde 1280 px; hasta 1279 px y en dispositivos con hover none o pointer coarse se utiliza header + contenido + bottom navigation, incluida tablet horizontal ancha.
+
+Cuenta concentra informacion personal, acceso a Configuracion, cambio de password en modal/bottom sheet y logout. Cancelar o completar el cambio limpia inmediatamente los valores password. MainLayout ya no contiene logout. No se modificaron endpoints ni logica backend.
+
+TEN-030 incorpora un sistema de diseño centralizado para toda la Web mediante `wwwroot/css/design-system.css`: paleta calida/pastel SweetSecrets, tokens de espaciado, radios y sombras, botones, formularios, badges, cards, tablas y estados consistentes. La hoja se carga despues de los estilos aislados existentes para unificar las pantallas sin trasladar ni modificar logica funcional.
+
+MainLayout y AdminLayout conservan sidebar limpia en escritorio, se compactan en tablet y usan navegacion inferior fija tipo app en movil. Productos y Recetas convierten tablas en cards etiquetadas; los listados administrativos pasan a bloques apilados. Login, registro, recuperacion, reset y confirmacion comparten una superficie de marca responsive. El documento HTML queda declarado `es-MX` y se agregan foco visible, controles touch-friendly y respeto por `prefers-reduced-motion`.
+
+No cambian contratos, endpoints, servicios, autenticacion, autorizacion, tenant resolution, auditoria, health checks ni rate limiting. Documentacion: `docs/technical/UI_UX_REDESIGN.md`.
+
+Validacion: build completo correcto y revision real de Login en escritorio y 390 px sin overflow horizontal. PENDIENTE PRUEBA FUNCIONAL VISUAL autenticada con cuentas TENANT_OWNER y PLATFORM_ADMIN y datos reales para recorrer todas las vistas y estados.
+
+---
 ## Actualizacion TEN-029 - Production Email Delivery & Rate Limiting
 
 TEN-029 mantiene ITransactionalEmailSender y agrega SMTP Production estandar mediante SmtpTransactionalEmailSender + MailKitSmtpTransport. Development conserva %TEMP%/SweetSecrets/email. Production valida Email:Smtp (host, puerto, remitente y credenciales emparejadas) antes del startup; no existen secretos ni valores reales en Git y UnconfiguredTransactionalEmailSender deja de registrarse.
