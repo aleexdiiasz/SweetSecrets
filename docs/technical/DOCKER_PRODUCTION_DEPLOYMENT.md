@@ -66,7 +66,9 @@ El puerto Web debe quedar accesible únicamente desde el terminador TLS o la red
 
 Las claves de Data Protection son material sensible: restringir acceso y respaldarlas junto con los datos. `docker compose down` conserva volúmenes; `docker compose down -v` los elimina y no debe usarse en producción para una detención normal.
 
-La política de backup/restore, rotación y almacenamiento externo de secretos queda fuera de esta baseline y debe definirse antes del go-live.
+TEN-032 implementa backup y restore coordinado de MASTER, todas las bases tenant y Data Protection usando los contenedores sin publicar PostgreSQL. El procedimiento, manifest, checksums y recuperación se documentan en `docs/technical/BACKUP_RECOVERY.md`.
+
+Backups deben copiarse cifrados fuera del servidor. Rotación de secretos, PITR y automatización Production continúan fuera de esta baseline.
 
 ## Bootstrap y email
 
@@ -95,7 +97,7 @@ Validación técnica ejecutada en una pila aislada:
 
 - terminación TLS, DNS, firewall y restricción del puerto Web al proxy frontal;
 - gestor de secretos y rotación de credenciales;
-- backups y pruebas de restauración de PostgreSQL/Data Protection;
+- automatización, almacenamiento off-site y pruebas periódicas de restauración de PostgreSQL/Data Protection;
 - automatización para migrar bases tenant existentes;
 - métricas, alertas y centralización de logs;
 - dimensionamiento, alta disponibilidad y estrategia de rollback;

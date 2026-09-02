@@ -82,3 +82,5 @@ Una prueba de pipeline ejecuta liveness y readiness delante de un middleware pos
 - prueba funcional final en el ambiente Production real.
 
 La topología, comandos, migraciones explícitas y smoke Production-like de TEN-031 están documentados en `docs/technical/DOCKER_PRODUCTION_DEPLOYMENT.md`.
+
+TEN-032 agrega verificación recuperable: readiness por sí sola no demuestra que MASTER, tenants y key ring puedan restaurarse. La preparación operacional exige backups completos verificados y ejercicios periódicos según `docs/technical/BACKUP_RECOVERY.md`.

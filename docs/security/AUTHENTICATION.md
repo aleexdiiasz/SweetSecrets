@@ -54,6 +54,8 @@ Características:
 
 En el baseline Docker de TEN-031, el key ring de ASP.NET Core Data Protection se comparte mediante un volumen persistente y un nombre de aplicación estable. Esto evita invalidar cookies por una recreación ordinaria del contenedor API. El volumen contiene material sensible y debe respaldarse y protegerse.
 
+TEN-032 incluye el key ring en el backup completo sin registrar su contenido. Debe almacenarse cifrado, restaurarse íntegramente en una ubicación vacía y mantenerse alineado con MASTER. Si se pierde, cookies y tokens Identity emitidos previamente pueden dejar de ser válidos. Los dumps MASTER contienen hashes Identity y requieren la misma protección que las claves.
+
 La API solo interpreta encabezados reenviados desde proxies/redes configurados. El middleware de forwarded headers se ejecuta antes de HTTPS, rate limiting y autenticación para que esquema, host e IP usados por seguridad correspondan al salto confiable.
 
 ## Login
