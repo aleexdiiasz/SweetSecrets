@@ -59,9 +59,11 @@ En Development, `DevelopmentTransactionalEmailSender` escribe las instrucciones 
 
 El nombre del archivo es aleatorio y el log solo muestra su ruta. El archivo contiene el correo y enlace necesarios para pruebas locales; debe tratarse como información sensible y eliminarse después de probar. El token deja de ser válido después de una hora o al utilizarse correctamente.
 
-En ambientes que no son Development se registra `UnconfiguredTransactionalEmailSender`. No se eligió proveedor comercial, SMTP ni credenciales. Hasta configurar una implementación productiva, la solicitud mantiene la respuesta genérica pero no puede entregar el enlace.
+Desde TEN-029, ambientes no Development registran `SmtpTransactionalEmailSender` con MailKit y configuración externa `Email:Smtp`. No se acopla a un proveedor comercial. La solicitud mantiene su respuesta genérica si falla la entrega.
 
 ## UI
+
+`forgot-password` usa rate limit `EmailDelivery` por IP y `reset-password` usa `TokenValidation`. HTTP 429 mantiene una respuesta genérica, no revela si el correo existe y la Web muestra el mensaje español común.
 
 - Login enlaza a `/forgot-password`.
 - Forgot Password muestra envío, error y mensaje genérico de éxito.
@@ -89,6 +91,6 @@ Debe comprobarse correo existente e inexistente con respuesta equivalente, lectu
 
 ## Limitaciones y decisiones pendientes
 
-- Falta elegir e implementar proveedor de correo para Production.
-- No hay rate limiting específico para los endpoints de recuperación.
+- Falta validar SMTP con una cuenta de prueba Production-like.
+- Los límites pueden requerir ajuste operacional después de observar tráfico real.
 - No se implementa `TENANT_USER` ni UI administrativa.

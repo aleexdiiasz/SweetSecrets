@@ -97,7 +97,7 @@ public sealed class HealthCheckTests
         var pipeline = new ApplicationBuilder(provider);
         pipeline.UseOperationalHealthChecks();
         pipeline.Run(_ => throw new InvalidOperationException(
-            "Authentication and database middleware must be bypassed."));
+            "Rate limiting, authentication and database middleware must be bypassed."));
         var application = pipeline.Build();
 
         var live = await InvokeAsync(application, provider, "/health/live");
@@ -119,7 +119,11 @@ public sealed class HealthCheckTests
             ["ConnectionStrings:MasterDatabase"] = "Host=db;Database=master",
             ["Cors:AllowedOrigins:0"] = "https://app.example.com",
             ["PasswordRecovery:ResetPageBaseUrl"] = "https://app.example.com/reset-password",
-            ["EmailConfirmation:ConfirmationPageBaseUrl"] = "https://app.example.com/confirm-email"
+            ["EmailConfirmation:ConfirmationPageBaseUrl"] = "https://app.example.com/confirm-email",
+            ["Email:Smtp:Host"] = "smtp.example.com",
+            ["Email:Smtp:Port"] = "587",
+            ["Email:Smtp:FromEmail"] = "no-reply@example.com",
+            ["Email:Smtp:FromName"] = "SweetSecrets"
         });
 
         ProductionConfigurationValidator.Validate(configuration, new TestEnvironment(Environments.Production));

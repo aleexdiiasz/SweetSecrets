@@ -37,6 +37,7 @@ Al iniciar en `Production`, la API exige:
 - al menos un `Cors__AllowedOrigins__0` HTTPS;
 - `PasswordRecovery__ResetPageBaseUrl` como URL HTTPS absoluta;
 - `EmailConfirmation__ConfirmationPageBaseUrl` como URL HTTPS absoluta.
+- configuración `Email__Smtp__*` válida para host, puerto, remitente y credenciales emparejadas.
 
 Los valores deben suministrarse mediante variables de entorno o un almacén seguro. No existen valores Production ni secretos hardcodeados. Development conserva sus URLs localhost en `appsettings.Development.json` y no queda bloqueado por la validación Production.
 
@@ -47,9 +48,9 @@ También deben configurarse fuera del repositorio:
 - terminación HTTPS y encabezados del proxy cuando exista;
 - proveedor y credenciales de email transaccional.
 
-## Email pendiente
+## Email Production
 
-Production continúa registrando `UnconfiguredTransactionalEmailSender`. No se seleccionó arbitrariamente un proveedor comercial. Recuperación y confirmación conservan respuestas seguras, pero la entrega real requiere implementar y registrar un adapter Production antes del despliegue.
+TEN-029 registra un transporte SMTP estándar con MailKit en ambientes no Development y exige configuración `Email:Smtp` completa en Production. Development conserva la bandeja local. Credenciales y remitente se suministran externamente; detalles en `docs/technical/PRODUCTION_EMAIL_RATE_LIMITING.md`.
 
 ## Cookies, HTTPS y CORS
 
@@ -69,8 +70,8 @@ Una prueba de pipeline ejecuta liveness y readiness delante de un middleware pos
 
 ## Limitaciones y pendientes
 
-- proveedor transaccional Production;
-- rate limiting general y de autenticación;
+- validación SMTP Production-like con una cuenta de prueba;
+- ajuste operacional de límites de autenticación;
 - infraestructura de deployment, reverse proxy y certificados;
 - observabilidad externa y monitoreo de bases tenant fuera de banda;
 - prueba funcional en un entorno Production-like con PostgreSQL real.

@@ -9,7 +9,7 @@ TEN-021 incorpora una infraestructura común de email transaccional y confirmaci
 Application define `ITransactionalEmailSender` y `TransactionalEmailMessage`. Infrastructure aporta:
 
 - `DevelopmentTransactionalEmailSender`, bandeja local de desarrollo;
-- `UnconfiguredTransactionalEmailSender`, adapter explícito para ambientes sin proveedor.
+- `SmtpTransactionalEmailSender` y `MailKitSmtpTransport` para ambientes no Development desde TEN-029.
 
 Password Recovery y Email Confirmation reutilizan la misma abstracción. Application no conoce SMTP ni proveedores comerciales. No se almacenan credenciales, API keys ni secretos.
 
@@ -21,7 +21,7 @@ En Development los mensajes se escriben en:
 
 Cada archivo tiene nombre aleatorio, destinatario, asunto y cuerpo. El log solo registra la ruta. Los enlaces son sensibles y deben eliminarse después de las pruebas.
 
-Production conserva el adapter no configurado. Falta seleccionar e implementar un proveedor transaccional y configurar URLs públicas; las respuestas anti-enumeración no cambian si falla la entrega.
+Production exige configuración `Email:Smtp` válida y usa SMTP estándar sin proveedor comercial específico. Los secretos llegan mediante configuración externa; las respuestas anti-enumeración no cambian si falla la entrega.
 
 ## Endpoints y contratos
 
@@ -69,6 +69,8 @@ Login valida primero la contraseña. Solo después de credenciales correctas dev
 
 ## Seguridad
 
+TEN-029 aplica la política `EmailDelivery` por IP a reenvío y `TokenValidation` a confirmación. Un exceso devuelve 429 genérico sin revelar si el correo existe. La Web presenta un mensaje español uniforme.
+
 El reenvío responde siempre:
 
 ```text
@@ -85,7 +87,6 @@ PENDIENTE PRUEBA FUNCIONAL EN NAVEGADOR del flujo completo y responsive aproxima
 
 ## Pendientes
 
-- seleccionar e implementar proveedor Production;
 - configurar URLs públicas de Production;
-- rate limiting específico para reenvío y recuperación;
+- validar SMTP con una cuenta de prueba Production-like;
 - definir una campaña opcional de confirmación para cuentas legacy.
