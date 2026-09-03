@@ -1,5 +1,11 @@
 # Backup & Recovery
 
+## Ejercicio E2E TEN-033
+
+Se ejecutó un backup completo con datos funcionales, se verificaron manifest y SHA-256, y se restauraron MASTER, cinco bases tenant y Data Protection en un segundo proyecto Compose aislado. La aplicación restaurada pasó health, continuidad de cookies, login nuevo de Tenant A, Tenant B y PLATFORM_ADMIN, tenant resolution, productos, recetas, settings y auditoría.
+
+El restore no sobrescribió el origen. Los contenedores fuente se retiraron sin `-v` y sus volúmenes se conservaron. Los dumps, keys y manifests de ejecución permanecen en `deploy/e2e/artifacts/`, ignorado por Git. Evidencia: [PRODUCTION_E2E_VALIDATION.md](PRODUCTION_E2E_VALIDATION.md).
+
 ## Alcance y unidad de recuperación
 
 TEN-032 define un respaldo reproducible para la arquitectura database-per-tenant. Un backup completo está formado por:

@@ -15,6 +15,45 @@ namespace SweetSecrets.UnitTests;
 public sealed class ProductionDeploymentTests
 {
     [Fact]
+    public void ProductionLogging_DoesNotEmitEntityFrameworkCommandsAtInformation()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Path.Combine(repositoryRoot, "src", "SweetSecrets.Api"))
+            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.Production.json")
+            .Build();
+
+        Assert.Equal(
+            "Warning",
+            configuration["Logging:LogLevel:Microsoft.EntityFrameworkCore.Database.Command"]);
+    }
+
+    [Theory]
+    [InlineData("deploy/nginx.conf")]
+    [InlineData("deploy/e2e/nginx.validation.conf")]
+    public void WebManifest_IsServedWithItsSpecificMediaType(string relativePath)
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var configuration = File.ReadAllText(Path.Combine(repositoryRoot, relativePath));
+
+        Assert.Contains("location = /manifest.webmanifest", configuration, StringComparison.Ordinal);
+        Assert.Contains("default_type application/manifest+json", configuration, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ResponsiveShell_CoversTenantAndAdminWithoutMobileTableOverflow()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var styles = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "SweetSecrets.Web", "wwwroot", "css", "design-system.css"));
+
+        Assert.Contains(".app-shell, .admin-shell", styles, StringComparison.Ordinal);
+        Assert.Contains(".app-sidebar, .admin-sidebar", styles, StringComparison.Ordinal);
+        Assert.Contains("min-width: 0 !important", styles, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ForwardedHeaders_TrustOnlyConfiguredProxyNetwork()
     {
         var configuration = Configuration(new Dictionary<string, string?>
@@ -123,6 +162,15 @@ public sealed class ProductionDeploymentTests
         services.AddLogging();
         services.AddProductionDataProtection(configuration, environment);
         return services.BuildServiceProvider();
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SweetSecrets.slnx")))
+            directory = directory.Parent;
+
+        return directory?.FullName ?? throw new DirectoryNotFoundException("No se encontró la raíz del repositorio.");
     }
 
     private static IConfiguration Configuration(IDictionary<string, string?> values) =>

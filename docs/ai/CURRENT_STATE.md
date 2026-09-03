@@ -1,5 +1,17 @@
 # Estado actual del proyecto
 
+## Actualizacion TEN-033 - Production End-to-End Validation
+
+Rama `feature/TEN-033-production-e2e-validation`. Se valido un stack Docker aislado Production-like con Nginx, API, migrador MASTER one-shot, PostgreSQL y Mailpit STARTTLS. Credenciales, cookies, tokens, dumps, keys y certificados privados se generaron bajo `deploy/e2e/artifacts/`, nunca se versionaron y se eliminaron al cerrar la prueba. Pasaron dos tenants objetivo, confirmacion, auth/cuenta/recovery, productos, recetas/costos/historial, MULTIPLIER, aislamiento, administracion, sesiones, auditoria, seis rate limits, forwarded headers, health con PostgreSQL caido y persistencia.
+
+Backup completo y checksums pasaron; MASTER, cinco bases tenant y Data Protection se restauraron en un segundo stack. Contra el restore pasaron health, cookies persistentes, login A/B/admin, tenant resolution y datos funcionales. No se borraron volumenes fuente.
+
+Bugs corregidos: fixture SMTP con CRL sin desactivar validacion; logging Production de comandos EF elevado a Warning; MIME PWA `application/manifest+json`. Reporte: `docs/technical/PRODUCTION_E2E_VALIDATION.md`.
+
+Smoke autenticado PASS en 1366x768, 390x844, 768x1024 y 1180x820 para owner/admin. Se corrigieron navegacion admin en tablet y min-width aislado de tablas owner a 390 px. Estado: GO condicionado solo a prerrequisitos reales (DNS/TLS, SMTP/secrets, backup cifrado off-site, firewall y monitoreo). Las fixtures `deploy/e2e` no son configuracion final Production.
+
+---
+
 ## Actualizacion TEN-032 - Backup & Recovery
 
 TEN-032 agrega scripts PowerShell 7 en deploy/scripts para backup completo, verificacion y restore seguro usando pg_dump/pg_restore dentro del contenedor PostgreSQL 18.6, sin publicar 5432. La unidad completa es MASTER + todas las bases descubiertas desde tenants.DatabaseName, sin filtrar estado, + Data Protection. Cada dump usa formato custom.

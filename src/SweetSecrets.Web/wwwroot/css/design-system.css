@@ -402,7 +402,7 @@ label { color: var(--ss-text); font-size: .88rem; font-weight: 680; }
 
     /* Tables become labeled cards without changing Razor/data behavior. */
     .products-table-wrapper, .recipes-table-wrapper { overflow: visible !important; border: 0 !important; background: transparent; box-shadow: none; }
-    .products-table, .recipes-table, .products-table tbody, .recipes-table tbody, .products-table tr, .recipes-table tr, .products-table td, .recipes-table td { display: block; width: 100%; min-width: 0; }
+    .products-table, .recipes-table, .products-table tbody, .recipes-table tbody, .products-table tr, .recipes-table tr, .products-table td, .recipes-table td { display: block; width: 100%; min-width: 0 !important; }
     .products-table thead, .recipes-table thead { position: absolute; overflow: hidden; width: 1px; height: 1px; clip: rect(0 0 0 0); }
     .products-table tr, .recipes-table tr { margin-bottom: 12px; border: 1px solid var(--ss-border); border-radius: var(--ss-radius-md); padding: 10px 14px; background: #fff; box-shadow: var(--ss-shadow-sm); }
     .products-table td, .recipes-table td { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 43px; padding: .55rem 0 !important; border-top: 1px solid var(--ss-border) !important; text-align: right; }
@@ -449,11 +449,11 @@ label { color: var(--ss-text); font-size: .88rem; font-weight: 680; }
     .auth-content .reset-card, .auth-content .confirmation-card { border-radius: 20px !important; padding: 24px 20px !important; }
 }
 
-/* Tenant navigation uses the app shell on phones and tablets in every orientation.
-   Fine-pointer desktop devices keep the sidebar from 1280px onward. */
+/* Tenant and platform navigation use the app shell on phones and tablets in every
+   orientation. Fine-pointer desktop devices keep the sidebar from 1280px onward. */
 @media (max-width: 1279px), (hover: none), (pointer: coarse) {
-    .app-shell { display: block !important; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
-    .app-sidebar {
+    .app-shell, .admin-shell { display: block !important; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+    .app-sidebar, .admin-sidebar {
         position: fixed;
         z-index: 100;
         right: max(10px, env(safe-area-inset-right));
@@ -467,10 +467,11 @@ label { color: var(--ss-text); font-size: .88rem; font-weight: 680; }
         box-shadow: 0 12px 35px rgba(56,40,34,.25);
         backdrop-filter: blur(18px);
     }
-    .sidebar-nav { display: flex !important; min-height: 0 !important; height: 100%; gap: 4px; padding: 7px !important; }
-    .sidebar-brand, .sidebar-section-title { display: none !important; }
-    .sidebar-section { display: contents !important; }
-    .sidebar-link {
+    .admin-sidebar { background: rgba(65,52,73,.95) !important; }
+    .sidebar-nav, .admin-nav { display: flex !important; min-height: 0 !important; height: 100%; gap: 4px; padding: 7px !important; }
+    .sidebar-brand, .admin-brand, .sidebar-section-title, .admin-section-title { display: none !important; }
+    .sidebar-section, .admin-section { display: contents !important; }
+    .sidebar-link, .admin-link {
         display: inline-flex !important;
         width: auto;
         flex: 1;
@@ -485,12 +486,12 @@ label { color: var(--ss-text); font-size: .88rem; font-weight: 680; }
         font-size: .64rem !important;
         vertical-align: top;
     }
-    .sidebar-icon { height: 23px; font-size: 1rem !important; line-height: 23px; }
-    .sidebar-link.active { background: rgba(255,255,255,.98) !important; box-shadow: none !important; }
-    .app-header { position: sticky; min-height: 64px !important; padding: 9px 18px !important; }
-    .app-header-context { display: none !important; }
+    .sidebar-icon, .admin-link > span { height: 23px; font-size: 1rem !important; line-height: 23px; }
+    .sidebar-link.active, .admin-link.active { background: rgba(255,255,255,.98) !important; box-shadow: none !important; }
+    .app-header, .admin-header { position: sticky; min-height: 64px !important; padding: 9px 18px !important; }
+    .app-header-context, .admin-heading span, .admin-identity { display: none !important; }
     .app-header-title::before { content: "SS"; display: inline-grid; width: 34px; height: 34px; place-items: center; margin-right: 9px; border-radius: 11px; background: linear-gradient(145deg,var(--ss-pink),var(--ss-vanilla)); font-size: .66rem; }
-    .app-content { padding-bottom: calc(28px + env(safe-area-inset-bottom)) !important; }
+    .app-content, .admin-content { padding-bottom: calc(28px + env(safe-area-inset-bottom)) !important; }
 }
 
 @media (max-width: 390px) {
