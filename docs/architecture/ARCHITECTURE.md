@@ -1,5 +1,11 @@
 # Arquitectura de SweetSecrets
 
+## Validación de arquitectura TEN-033
+
+La ruta real `Nginx -> API -> Application/Infrastructure -> PostgreSQL` fue ejercitada con dos tenants y un restore completo. El frontend no seleccionó TenantId ni DatabaseName; la identidad resolvió cada base y las consultas de productos, recetas, settings, historiales y dashboard permanecieron aisladas. MASTER conservó Identity, sesiones, tenants y auditoría; cada tenant mantuvo su propia base.
+
+La prueba confirmó el migrador MASTER one-shot, provisioning con migrations/seed tenant, PostgreSQL no publicado, persistencia del key ring y recuperación del conjunto MASTER + tenants + Data Protection. Detalle: [PRODUCTION_E2E_VALIDATION.md](../technical/PRODUCTION_E2E_VALIDATION.md).
+
 ## Objetivo
 
 SweetSecrets es una PWA multi-tenant para control de productos,

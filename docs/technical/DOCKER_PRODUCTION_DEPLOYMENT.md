@@ -1,5 +1,13 @@
 # Docker Production Deployment Baseline
 
+## Validación TEN-033
+
+La baseline arrancó desde configuración Production completa detrás de Nginx, con API/PostgreSQL internos, migración MASTER one-shot, cookies `Secure` y volúmenes persistentes. Se probó restart/recreate y un segundo stack contra un restore completo. `manifest.webmanifest` se sirve explícitamente como `application/manifest+json`.
+
+El smoke autenticado confirmó sidebar únicamente en desktop (1366x768) y navegación inferior para owner/admin en 390x844, 768x1024 y 1180x820. Productos y recetas se convierten a cards sin overflow a 390 px.
+
+`deploy/e2e` contiene únicamente fixtures locales: proxy con proto HTTPS simulado, Mailpit STARTTLS, certificados/CRL efímeros y un override PostgreSQL vacío para restore. No deben reutilizarse como TLS, CA, SMTP o secretos Production. Consulte [PRODUCTION_E2E_VALIDATION.md](PRODUCTION_E2E_VALIDATION.md).
+
 ## Alcance
 
 TEN-031 agrega una baseline reproducible para ejecutar SweetSecrets con Docker Compose:

@@ -1,5 +1,11 @@
 # Autenticación y sesiones
 
+## Validación Production-like TEN-033
+
+Se comprobó registro, obligación de confirmar email, login posterior, cambio de contraseña con continuidad de sesión, rechazo del password anterior, forgot/reset anti-enumeración, suspensión tenant, bloqueo de usuario y revocación de sesión. Las cookies emitidas fueron `HttpOnly`, `Secure` y `SameSite=Lax`; owner obtuvo 403 al invocar API PLATFORM_ADMIN.
+
+Los seis endpoints públicos protegidos alcanzaron 429 con `Retry-After` y mensaje genérico detrás de Nginx. Un `X-Forwarded-For` inyectado no evadió la partición. Production suprime comandos SQL EF informativos para evitar nombres técnicos Identity en logs. Consulte [PRODUCTION_E2E_VALIDATION.md](../technical/PRODUCTION_E2E_VALIDATION.md).
+
 ## Tecnología
 
 SweetSecrets utiliza ASP.NET Core Identity.

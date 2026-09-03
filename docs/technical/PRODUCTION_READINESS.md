@@ -1,5 +1,11 @@
 # Production Readiness and Health Checks
 
+## Validación integral TEN-033
+
+El stack Production-like confirmó `live=200` y `ready=200` en operación normal. Con el contenedor PostgreSQL detenido, liveness permaneció en 200 sin consultar MASTER y readiness respondió 503 con un body limitado a `status`; después recuperó 200. Restart/recreate de API, Web y PostgreSQL conservó datos, auditoría, cookies y Data Protection.
+
+Durante esta validación se añadió `appsettings.Production.json` para elevar `Microsoft.EntityFrameworkCore.Database.Command` a `Warning`. Así Production no imprime SQL informativo ni nombres de columnas Identity en stdout. Resultados y evidencia: [PRODUCTION_E2E_VALIDATION.md](PRODUCTION_E2E_VALIDATION.md).
+
 ## Issue
 
 TEN-023 - Production Readiness & Health Checks

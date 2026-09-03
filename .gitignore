@@ -21,6 +21,7 @@ backups/
 deploy/.env
 deploy/.env.*
 !deploy/.env.example
+deploy/e2e/artifacts/
 *.user
 *.userosscache
 *.sln.docstates
